@@ -947,6 +947,7 @@ struct CompactDataClause {
     std::shared_ptr<InputFrame> frame_;
     uint64_t min_rows_per_segment_;
     uint64_t max_rows_per_segment_;
+    bool dynamic_schema_;
 
     CompactDataClause(uint64_t rows_per_segment, std::shared_ptr<InputFrame> frame = std::shared_ptr<InputFrame>());
     ARCTICDB_MOVE_COPY_DEFAULT(CompactDataClause)
@@ -961,7 +962,7 @@ struct CompactDataClause {
 
     [[nodiscard]] const ClauseInfo& clause_info() const;
 
-    void set_processing_config(const ProcessingConfig&);
+    void set_processing_config(const ProcessingConfig& processing_config);
 
     void set_component_manager(std::shared_ptr<ComponentManager> component_manager);
 

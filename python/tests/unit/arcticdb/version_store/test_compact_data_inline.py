@@ -16,7 +16,7 @@ pytestmark = pytest.mark.pipeline
 
 
 def test_basic(in_memory_store_factory):
-    lib = in_memory_store_factory()
+    lib = in_memory_store_factory(dynamic_schema=True)
     sym = "test_basic"
     df_0 = pd.DataFrame({"col": np.arange(20)})
     lib.write(sym, df_0)
@@ -32,3 +32,5 @@ def test_basic(in_memory_store_factory):
 # TODO: Tests
 # - appending an empty df with compact_data_inline=True defrags existing data
 # - with column slicing
+# - with dynamic schema
+# - with data that needs writing (and slicing) after what gets combined with existing data

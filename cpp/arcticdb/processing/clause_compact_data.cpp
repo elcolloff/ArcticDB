@@ -208,26 +208,29 @@ std::vector<EntityId> CompactDataClause::process(std::vector<EntityId>&& entity_
         for (size_t idx = 0; idx < reslicing_info.num_segments; ++idx) {
             row_count += reslicing_info.rows_in_slice(idx);
             if (row_count > total_rows_without_frame) {
-                // TODO: This descriptor and col range will be wrong with column slicing. Do we also need desc_for_tsd
-                //  as well?
-                FrameSlice frame_slice{
-                        std::make_shared<StreamDescriptor>(frame_->desc()),
-                        {col_range_start, col_range_start + frame_->desc().field_count()},
-                        {frame_->offset, row_count}
-                };
-                WriteToSegmentTask write_to_segment_task{
-                        frame_,
-                        frame_slice,
-                        NoSlicing(),
-                        [](const FrameSlice&) { return PartialKey{}; },
-                        0, // TODO: This will be wrong for column sliced data
-                        frame_->index,
-                        false
-                };
-                auto segment_from_frame = std::get<SegmentInMemory>(write_to_segment_task());
-                segments.emplace_back(std::move(segment_from_frame));
+                break;
+            } else {
+                // TODO: Better error message
+                util::check(idx != reslicing_info.num_segments - 1, "PANIC");
             }
         }
+        // TODO: This descriptor and col range will be wrong with column slicing
+        FrameSlice frame_slice{
+                std::make_shared<StreamDescriptor>(frame_->desc()),
+                {col_range_start, col_range_start + frame_->desc().field_count()},
+                {frame_->offset, row_count}
+        };
+        WriteToSegmentTask write_to_segment_task{
+                frame_,
+                frame_slice,
+                NoSlicing(),
+                [](const FrameSlice&) { return PartialKey{}; },
+                0, // TODO: This will be wrong for column sliced data
+                frame_->index,
+                false
+        };
+        auto segment_from_frame = std::get<SegmentInMemory>(write_to_segment_task());
+        segments.emplace_back(std::move(segment_from_frame));
     }
 
     SegmentReslicer reslicer{max_rows_per_segment_};
@@ -262,7 +265,9 @@ std::vector<EntityId> CompactDataClause::process(std::vector<EntityId>&& entity_
 
 const ClauseInfo& CompactDataClause::clause_info() const { return clause_info_; }
 
-void CompactDataClause::set_processing_config(const ProcessingConfig&) {}
+void CompactDataClause::set_processing_config(const ProcessingConfig& processing_config) {
+    dynamic_schema_ = processing_config.dynamic_schema_;
+}
 
 void CompactDataClause::set_component_manager(std::shared_ptr<ComponentManager> component_manager) {
     component_manager_ = std::move(component_manager);
