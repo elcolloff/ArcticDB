@@ -18,7 +18,9 @@
 
 namespace arcticdb {
 
-CompactDataClause::CompactDataClause(uint64_t rows_per_segment) : rows_per_segment_(rows_per_segment) {
+CompactDataClause::CompactDataClause(uint64_t rows_per_segment, std::shared_ptr<InputFrame> frame) :
+    rows_per_segment_(rows_per_segment),
+    frame_(std::move(frame)) {
     // Magic range of +-33% chosen so that:
     // - 2 row slices with < min_rows_per_segment_ cannot be combined into one row slice with > max_rows_per_segment_
     // - 1 row slice with a little more than max_rows_per_segment_ when split in half will still have

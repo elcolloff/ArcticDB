@@ -944,10 +944,11 @@ struct CompactDataClause {
     ClauseInfo clause_info_;
     std::shared_ptr<ComponentManager> component_manager_;
     uint64_t rows_per_segment_;
+    std::shared_ptr<InputFrame> frame_;
     uint64_t min_rows_per_segment_;
     uint64_t max_rows_per_segment_;
 
-    explicit CompactDataClause(uint64_t rows_per_segment);
+    CompactDataClause(uint64_t rows_per_segment, std::shared_ptr<InputFrame> frame = std::shared_ptr<InputFrame>());
     ARCTICDB_MOVE_COPY_DEFAULT(CompactDataClause)
 
     [[nodiscard]] std::vector<std::vector<size_t>> structure_for_processing(std::vector<RangesAndKey>& ranges_and_keys);
