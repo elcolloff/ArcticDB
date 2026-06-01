@@ -82,6 +82,66 @@ static void modify_descriptor(
     }
 }
 
+namespace {
+
+// EXPERIMENTAL: build a ColumnStats covering every data column in `desc` whose
+// type supports MINMAX (numeric or temporal). Skips primary index field(s) and
+// any column we cannot compute min/max over (strings, bools-as-objects, etc.).
+// Returns nullopt when nothing qualifies — caller should treat as a no-op.
+std::optional<ColumnStats> build_auto_column_stats(const StreamDescriptor& desc) {
+    std::unordered_map<std::string, std::unordered_set<std::string>> stats_map;
+    const uint32_t index_field_count = desc.index().field_count();
+    size_t pos = 0;
+
+    for (const auto& field : desc.fields()) {
+        const size_t this_pos = pos++;
+
+        if (this_pos < index_field_count) {
+            continue;
+        }
+        if (!arcticdb::is_numeric_type(field.type().data_type())) {
+            continue;
+        }
+
+        if (field.name().empty()) {
+            continue;
+        }
+
+        stats_map.emplace(std::move(std::string(field.name())), std::unordered_set<std::string>{"MINMAX"});
+    }
+
+    if (stats_map.empty()) {
+        return std::nullopt;
+    }
+    
+    return ColumnStats(stats_map);
+}
+
+// EXPERIMENTAL: invoked automatically after every write/append/update. Builds
+// the auto stats from the input frame's descriptor and delegates to
+// create_column_stats_impl. Failures are swallowed so the user's write still
+// succeeds even on unsupported shapes (pickled symbols, duplicate columns).
+void create_auto_column_stats_impl_experimental(
+        const std::shared_ptr<Store>& store, const VersionedItem& versioned_item,
+        const StreamDescriptor& frame_desc
+) {
+    try {
+        auto auto_stats = build_auto_column_stats(frame_desc);
+        if (!auto_stats.has_value()) {
+            return;
+        }
+
+        ReadOptions read_options;
+        create_column_stats_impl(store, versioned_item, *auto_stats, read_options);
+    } catch (const SchemaException& e) {
+        ARCTICDB_DEBUG(log::version(), "Auto column stats skipped (schema): {}", e.what());
+    } catch (const UserInputException& e) {
+        ARCTICDB_DEBUG(log::version(), "Auto column stats skipped (user input): {}", e.what());
+    }
+}
+
+} // namespace
+
 VersionedItem write_dataframe_impl(
         const std::shared_ptr<Store>& store, VersionId version_id, const std::shared_ptr<InputFrame>& frame,
         const WriteOptions& options, const std::shared_ptr<DeDupMap>& de_dup_map, bool sparsify_floats,
@@ -97,7 +157,9 @@ VersionedItem write_dataframe_impl(
     );
     auto atom_key_fut =
             async_write_dataframe_impl(store, version_id, frame, options, de_dup_map, sparsify_floats, validate_index);
-    return {std::move(atom_key_fut).get()};
+    VersionedItem versioned_item{std::move(atom_key_fut).get()};
+    create_auto_column_stats_impl_experimental(store, versioned_item, frame->desc());
+    return versioned_item;
 }
 
 std::tuple<IndexPartialKey, SlicingPolicy> get_partial_key_and_slicing_policy(
@@ -194,6 +256,7 @@ VersionedItem append_impl(
             versioned_item.symbol(),
             update_info.next_version_id_
     );
+    create_auto_column_stats_impl_experimental(store, versioned_item, frame->desc());
     return versioned_item;
 }
 
@@ -646,6 +709,7 @@ VersionedItem update_impl(
     ARCTICDB_DEBUG(
             log::version(), "updated stream_id: {} , version_id: {}", frame->desc().id(), update_info.next_version_id_
     );
+    create_auto_column_stats_impl_experimental(store, versioned_item, frame->desc());
     return versioned_item;
 }
 
