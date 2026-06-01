@@ -11,8 +11,11 @@
 #include <cstdint>
 #include <set>
 
+#include <arcticdb/column_store/column_reslicer.hpp>
 #include <arcticdb/column_store/segment_reslicer.hpp>
 #include <arcticdb/pipeline/frame_slice.hpp>
+#include <arcticdb/pipeline/input_frame.hpp>
+#include <arcticdb/pipeline/write_frame.hpp>
 #include <arcticdb/processing/clause_utils.hpp>
 #include <arcticdb/util/collection_utils.hpp>
 
@@ -104,10 +107,15 @@ std::vector<std::vector<size_t>> CompactDataClause::structure_for_processing(std
     for (const auto& range_and_key : ranges_and_keys) {
         row_ranges.insert(range_and_key.row_range());
     }
+    if (frame_) {
+        frame_->set_offset(row_ranges.rbegin()->second);
+        row_ranges.emplace(frame_->offset, frame_->offset + frame_->num_rows);
+    }
     // The greedy algorithm in structure_row_ranges can reslice data where all segments have an acceptable number of
     // rows, which is not desirable, so short-circuit out if this is the case
     if (row_ranges_all_acceptable_lengths(row_ranges)) {
-        log::version().info("No work to do in CompactDataClause, data is already compacted");
+        // TODO: Still need to construct frame slices in this case
+        log::version().info("No work to do in CompactDataClause, existing data is already compacted");
         ranges_and_keys.clear();
         return {};
     }
@@ -128,7 +136,7 @@ std::vector<std::vector<size_t>> CompactDataClause::structure_for_processing(std
             }
     );
     if (ranges_and_keys.empty()) {
-        log::version().info("No work to do in CompactDataClause, data is already compacted");
+        log::version().info("No work to do in CompactDataClause, existing data is already compacted");
         return {};
     }
     // Order by column slice (i.e. all segments in first column slice from top to bottom, then second column slice, etc)
@@ -186,6 +194,42 @@ std::vector<EntityId> CompactDataClause::process(std::vector<EntityId>&& entity_
             proc.row_ranges_->back()->second
     );
     std::vector<SegmentInMemory> segments = util::extract_from_pointers(std::move(*proc.segments_));
+    uint64_t total_rows_without_frame = std::accumulate(
+            segments.cbegin(),
+            segments.cend(),
+            uint64_t(0),
+            [](uint64_t n, const SegmentInMemory& segment) { return n + segment.row_count(); }
+    );
+    auto total_rows = total_rows_without_frame + (frame_ ? frame_->num_rows : 0);
+    ReslicingInfo reslicing_info{total_rows, max_rows_per_segment_};
+    if (frame_) {
+        // Work out which slice of the frame we need to combine with segments from disk
+        uint64_t row_count{0};
+        for (size_t idx = 0; idx < reslicing_info.num_segments; ++idx) {
+            row_count += reslicing_info.rows_in_slice(idx);
+            if (row_count > total_rows_without_frame) {
+                // TODO: This descriptor and col range will be wrong with column slicing. Do we also need desc_for_tsd
+                //  as well?
+                FrameSlice frame_slice{
+                        std::make_shared<StreamDescriptor>(frame_->desc()),
+                        {col_range_start, col_range_start + frame_->desc().field_count()},
+                        {frame_->offset, row_count}
+                };
+                WriteToSegmentTask write_to_segment_task{
+                        frame_,
+                        frame_slice,
+                        NoSlicing(),
+                        [](const FrameSlice&) { return PartialKey{}; },
+                        0, // TODO: This will be wrong for column sliced data
+                        frame_->index,
+                        false
+                };
+                auto segment_from_frame = std::get<SegmentInMemory>(write_to_segment_task());
+                segments.emplace_back(std::move(segment_from_frame));
+            }
+        }
+    }
+
     SegmentReslicer reslicer{max_rows_per_segment_};
     segments = reslicer.reslice_segments(std::move(segments));
 

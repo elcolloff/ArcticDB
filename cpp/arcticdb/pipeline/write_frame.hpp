@@ -14,6 +14,7 @@
 #include <arcticdb/stream/index.hpp>
 #include <folly/futures/Future.h>
 #include <arcticdb/pipeline/frame_slice.hpp>
+#include <arcticdb/pipeline/index_segment_reader.hpp>
 #include <arcticdb/pipeline/slicing.hpp>
 #include <arcticdb/stream/stream_sink.hpp>
 #include <arcticdb/storage/store.hpp>

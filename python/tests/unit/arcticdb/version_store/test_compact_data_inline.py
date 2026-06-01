@@ -22,6 +22,7 @@ def test_basic(in_memory_store_factory):
     lib.write(sym, df_0)
     df_1 = pd.DataFrame({"col": np.arange(20, 30)})
     lib.append(sym, df_1, compact_data_inline=True)
+    # lib.append(sym, df_1)
     expected = pd.concat([df_0, df_1]).reset_index(drop=True)
     received = lib.read(sym).data
     assert_frame_equal(expected, received)
@@ -29,4 +30,5 @@ def test_basic(in_memory_store_factory):
 
 
 # TODO: Tests
-#  - appending an empty df with compact_data_inline=True defrags existing data
+# - appending an empty df with compact_data_inline=True defrags existing data
+# - with column slicing

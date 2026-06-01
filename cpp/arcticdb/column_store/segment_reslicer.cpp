@@ -17,6 +17,7 @@ SegmentReslicer::SegmentReslicer(uint64_t max_rows_per_segment) : max_rows_per_s
     util::check(max_rows_per_segment_ > 0, "SegmentReslicer max rows per segment must be >0");
 }
 
+// TODO: refactor to take ReslicingInfo as argument instead of calculating twice
 std::vector<SegmentInMemory> SegmentReslicer::reslice_segments(std::vector<SegmentInMemory>&& segments) {
     if (segments.empty()) {
         return {};
