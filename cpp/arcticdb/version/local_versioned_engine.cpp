@@ -1862,7 +1862,7 @@ std::vector<std::variant<folly::Unit, DataError>> LocalVersionedEngine::batch_de
 
 VersionedItem LocalVersionedEngine::append_internal(
         const StreamId& stream_id, const std::shared_ptr<InputFrame>& frame, bool upsert, bool prune_previous_versions,
-        bool validate_index
+        bool validate_index, ARCTICDB_UNUSED bool compact_data_inline
 ) {
     py::gil_scoped_release release_gil;
     auto update_info = get_latest_undeleted_version_and_next_version_id(store(), version_map(), stream_id);
