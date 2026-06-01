@@ -3218,15 +3218,18 @@ folly::Future<CompactDataInfo> compact_data_explain_plan_impl(
 }
 
 folly::Future<std::optional<VersionedItem>> compact_data_impl(
-        const std::shared_ptr<Store>& store, const VersionedItem& versioned_item, const WriteOptions& write_options,
-        const IndexPartialKey& target_partial_index_key, uint64_t rows_per_segment
+        const std::shared_ptr<Store>& store, const UpdateInfo& update_info, const WriteOptions& write_options,
+        uint64_t rows_per_segment
 ) {
+    const auto& stream_id = update_info.previous_index_key_->id();
     auto read_query = std::make_shared<ReadQuery>();
     read_query->clauses_.push_back(std::make_shared<Clause>(CompactDataClause(rows_per_segment)));
-    VersionIdentifier resolved =
-            std::make_shared<IndexInformation>(read_index_key_without_column_stats(store, versioned_item.key_));
+    VersionIdentifier resolved = std::make_shared<IndexInformation>(
+            read_index_key_without_column_stats(store, *update_info.previous_index_key_)
+    );
     std::shared_ptr<PipelineContext> pipeline_context =
             setup_pipeline_context(store, std::move(resolved), *read_query, {});
+    IndexPartialKey target_partial_index_key{stream_id, update_info.next_version_id_};
     return read_modify_write_data_keys(store, read_query, ReadOptions{}, target_partial_index_key, pipeline_context)
             .thenValue(
                     [pipeline_context = std::move(pipeline_context),

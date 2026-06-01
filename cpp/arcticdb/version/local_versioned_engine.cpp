@@ -1376,9 +1376,8 @@ VersionedItem LocalVersionedEngine::compact_data_internal(
     UpdateInfo update_info = compact_data_preamble(stream_id);
     auto versioned_item = compact_data_impl(
                                   store(),
-                                  VersionedItem{*update_info.previous_index_key_},
+                                  update_info,
                                   get_write_options(),
-                                  IndexPartialKey{stream_id, update_info.next_version_id_},
                                   rows_per_segment.value_or(get_write_options().segment_row_size)
     )
                                   .get();
