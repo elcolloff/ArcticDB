@@ -26,3 +26,7 @@ def test_basic(in_memory_store_factory):
     received = lib.read(sym).data
     assert_frame_equal(expected, received)
     assert len(lib.read_index(sym)) == 1
+
+
+# TODO: Tests
+#  - appending an empty df with compact_data_inline=True defrags existing data

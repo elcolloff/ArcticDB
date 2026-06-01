@@ -1861,27 +1861,53 @@ std::vector<std::variant<folly::Unit, DataError>> LocalVersionedEngine::batch_de
 
 VersionedItem LocalVersionedEngine::append_internal(
         const StreamId& stream_id, const std::shared_ptr<InputFrame>& frame, bool upsert, bool prune_previous_versions,
-        bool validate_index, ARCTICDB_UNUSED bool compact_data_inline
+        bool validate_index, bool compact_data_inline
 ) {
     py::gil_scoped_release release_gil;
     auto update_info = get_latest_undeleted_version_and_next_version_id(store(), version_map(), stream_id);
 
     if (update_info.previous_index_key_.has_value()) {
-        if (frame->empty()) {
-            ARCTICDB_RUNTIME_DEBUG(
-                    log::version(),
-                    "Appending an empty item to existing data has no effect. \n"
-                    "No new version has been created for symbol='{}', "
-                    "and the last version is returned",
-                    stream_id
+        // TODO: Refactor to remove duplication here and in compact_data_internal
+        if (compact_data_inline) {
+            auto versioned_item =
+                    compact_data_impl(
+                            store(), update_info, get_write_options(), get_write_options().segment_row_size, frame
+                    )
+                            .get();
+            if (versioned_item.has_value()) {
+                write_version_and_prune_previous(
+                        prune_previous_versions, versioned_item->key_, update_info.previous_index_key_
+                );
+                return *versioned_item;
+            } else {
+                // compact_data_impl returns nullopt if the data was already compacted, in which case the versioned item
+                // we return is for the existing version
+                return {std::move(*update_info.previous_index_key_)};
+            }
+        } else {
+            if (frame->empty() && !compact_data_inline) {
+                ARCTICDB_RUNTIME_DEBUG(
+                        log::version(),
+                        "Appending an empty item to existing data has no effect. \n"
+                        "No new version has been created for symbol='{}', "
+                        "and the last version is returned",
+                        stream_id
+                );
+                return VersionedItem(*std::move(update_info.previous_index_key_));
+            }
+            auto versioned_item = append_impl(
+                    store(),
+                    update_info,
+                    frame,
+                    get_write_options(),
+                    validate_index,
+                    cfg().write_options().empty_types()
             );
-            return VersionedItem(*std::move(update_info.previous_index_key_));
+            write_version_and_prune_previous(
+                    prune_previous_versions, versioned_item.key_, update_info.previous_index_key_
+            );
+            return versioned_item;
         }
-        auto versioned_item = append_impl(
-                store(), update_info, frame, get_write_options(), validate_index, cfg().write_options().empty_types()
-        );
-        write_version_and_prune_previous(prune_previous_versions, versioned_item.key_, update_info.previous_index_key_);
-        return versioned_item;
     } else {
         if (upsert) {
             auto write_options = get_write_options();

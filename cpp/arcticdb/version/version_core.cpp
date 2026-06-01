@@ -3219,7 +3219,7 @@ folly::Future<CompactDataInfo> compact_data_explain_plan_impl(
 
 folly::Future<std::optional<VersionedItem>> compact_data_impl(
         const std::shared_ptr<Store>& store, const UpdateInfo& update_info, const WriteOptions& write_options,
-        uint64_t rows_per_segment
+        uint64_t rows_per_segment, ARCTICDB_UNUSED std::shared_ptr<InputFrame> frame
 ) {
     const auto& stream_id = update_info.previous_index_key_->id();
     auto read_query = std::make_shared<ReadQuery>();

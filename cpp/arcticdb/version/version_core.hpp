@@ -208,7 +208,7 @@ folly::Future<CompactDataInfo> compact_data_explain_plan_impl(
 
 folly::Future<std::optional<VersionedItem>> compact_data_impl(
         const std::shared_ptr<Store>& store, const UpdateInfo& update_info, const WriteOptions& write_options,
-        uint64_t rows_per_segment
+        uint64_t rows_per_segment, std::shared_ptr<InputFrame> frame = std::shared_ptr<InputFrame>()
 );
 
 std::shared_ptr<PipelineContext> setup_pipeline_context(
