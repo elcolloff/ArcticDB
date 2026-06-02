@@ -1266,20 +1266,27 @@ class NativeVersionStore:
                 _log_warning_on_writing_empty_dataframe(data_vector[idx], symbols[idx])
         return result
 
-    def create_column_stats(
-        self, symbol: str, column_stats: Dict[str, Set[str]], as_of: Optional[VersionQueryInput] = None
+    def create_column_stats_experimental(
+        self,
+        symbol: str,
+        column_stats: Optional[Dict[str, Set[str]]] = None,
+        as_of: Optional[VersionQueryInput] = None,
     ) -> None:
         """
         Calculates the specified column statistics for each row-slice for the given symbol. In the future, these
         statistics will be used by `QueryBuilder` filtering operations to reduce the number of data segments read out
         of storage.
 
+        When `column_stats` is omitted, MINMAX stats are built for every non-index column whose dtype is numeric
+        (uint/int/float) or a UTC nanosecond timestamp. Any pre-existing stats are merged with the newly computed
+        ones (read-modify-write).
+
         Parameters
         ----------
         symbol: `str`
             Symbol name.
-        column_stats: `Dict[str, Set[str]]`
-            The column stats to create.
+        column_stats: `Optional[Dict[str, Set[str]]], default=None`
+            The column stats to create. If omitted, MINMAX is computed for every supported column.
             Keys are column names.
             Values are sets of statistic types to build for that column. Options are:
                 "MINMAX" : store the minimum and maximum value for the column in each row-slice
@@ -1290,9 +1297,31 @@ class NativeVersionStore:
         -------
         None
         """
+        if column_stats is None:
+            column_stats = self._auto_column_stats(symbol, as_of)
+            if not column_stats:
+                return
         column_stats = self._get_column_stats(column_stats)
         version_query = self._get_version_query(as_of)
         self.version_store.create_column_stats_version(symbol, column_stats, version_query)
+
+    def _auto_column_stats(
+        self, symbol: str, as_of: Optional[VersionQueryInput]
+    ) -> Dict[str, Set[str]]:
+        info = self.get_info(symbol, version=as_of)
+        numeric_value_types = {
+            TypeDescriptor.ValueType.UINT,
+            TypeDescriptor.ValueType.INT,
+            TypeDescriptor.ValueType.FLOAT,
+            TypeDescriptor.ValueType.NANOSECONDS_UTC,
+        }
+        columns = info["col_names"]["columns"]
+        dtypes = info["dtype"]
+        return {
+            str(col): {"MINMAX"}
+            for col, dtype in zip(columns, dtypes)
+            if dtype.value_type in numeric_value_types
+        }
 
     def drop_column_stats(
         self, symbol: str, column_stats: Optional[Dict[str, Set[str]]] = None, as_of: Optional[VersionQueryInput] = None
@@ -1306,7 +1335,7 @@ class NativeVersionStore:
             Symbol name.
         column_stats: `Optional[Dict[str, Set[str]]], default=None`
             The column stats to drop. If not provided, all column stats will be dropped.
-            See documentation of `create_column_stats` method for more details.
+            See documentation of `create_column_stats_experimental` method for more details.
         as_of : `Optional[VersionQueryInput]`, default=None
             See documentation of `read` method for more details.
 
@@ -1355,7 +1384,7 @@ class NativeVersionStore:
         -------
         `Dict[str, Set[str]]`
             A dict from column names to sets of column stats that have been generated for that column.
-            In the same format as the `column_stats` argument provided to `create_column_stats` and `drop_column_stats`.
+            In the same format as the `column_stats` argument provided to `create_column_stats_experimental` and `drop_column_stats`.
         """
         version_query = self._get_version_query(as_of, **kwargs)
         return self.version_store.get_column_stats_info_version(symbol, version_query).to_map()
