@@ -419,7 +419,6 @@ void do_sort(SegmentInMemory& mutable_seg, const std::vector<std::string> sort_c
                    folly::window(
                            std::move(slice_and_rowcount),
                            [frame,
-                            slicing_policy,
                             key = std::move(key),
                             store,
                             sparsify_floats,
@@ -432,10 +431,8 @@ void do_sort(SegmentInMemory& mutable_seg, const std::vector<std::string> sort_c
                                return async::submit_cpu_task(WriteToSegmentTask(
                                                                      frame,
                                                                      slice.first,
-                                                                     slicing_policy,
                                                                      get_partial_key_gen(frame, typed_stream_version),
                                                                      slice.second,
-                                                                     frame->index,
                                                                      sparsify_floats
                                                              ))
                                        .thenValue([store, de_dup_map, bucketize_dynamic, desc, norm_meta, user_meta](

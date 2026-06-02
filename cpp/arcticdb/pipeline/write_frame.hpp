@@ -28,16 +28,14 @@ struct WriteToSegmentTask : public async::BaseTask {
   public:
     std::shared_ptr<InputFrame> frame_;
     const FrameSlice slice_;
-    const SlicingPolicy slicing_;
     folly::Function<PartialKey(const FrameSlice&)> partial_key_gen_;
     size_t slice_num_for_column_;
-    Index index_;
     bool sparsify_floats_;
     util::MagicNum<'W', 's', 'e', 'g'> magic_;
 
     WriteToSegmentTask(
-            std::shared_ptr<InputFrame> frame, FrameSlice slice, const SlicingPolicy& slicing,
-            folly::Function<PartialKey(const FrameSlice&)>&& partial_key_gen, size_t slice_num_for_column, Index index,
+            std::shared_ptr<InputFrame> frame, FrameSlice slice,
+            folly::Function<PartialKey(const FrameSlice&)>&& partial_key_gen, size_t slice_num_for_column,
             bool sparsify_floats
     );
 
@@ -58,9 +56,9 @@ folly::Future<std::vector<SliceAndKey>> slice_and_write(
 int64_t write_window_size();
 
 folly::SemiFuture<std::vector<folly::Try<SliceAndKey>>> write_slices(
-        const std::shared_ptr<InputFrame>& frame, std::vector<FrameSlice>&& slices, const SlicingPolicy& slicing,
-        TypedStreamVersion&& partial_key, const std::shared_ptr<stream::StreamSink>& sink,
-        const std::shared_ptr<DeDupMap>& de_dup_map, bool sparsify_floats
+        const std::shared_ptr<InputFrame>& frame, std::vector<FrameSlice>&& slices, TypedStreamVersion&& partial_key,
+        const std::shared_ptr<stream::StreamSink>& sink, const std::shared_ptr<DeDupMap>& de_dup_map,
+        bool sparsify_floats
 );
 
 folly::Future<entity::AtomKey> write_frame(

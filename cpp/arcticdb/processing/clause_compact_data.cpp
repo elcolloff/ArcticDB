@@ -223,10 +223,8 @@ std::vector<EntityId> CompactDataClause::process(std::vector<EntityId>&& entity_
         WriteToSegmentTask write_to_segment_task{
                 frame_,
                 frame_slice,
-                NoSlicing(),
                 [](const FrameSlice&) { return PartialKey{}; },
                 0, // TODO: This will be wrong for column sliced data
-                frame_->index,
                 false
         };
         auto segment_from_frame = std::get<SegmentInMemory>(write_to_segment_task());
