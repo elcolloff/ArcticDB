@@ -214,12 +214,19 @@ std::vector<EntityId> CompactDataClause::process(std::vector<EntityId>&& entity_
                 util::check(idx != reslicing_info.num_segments - 1, "PANIC");
             }
         }
-        // TODO: This descriptor and col range will be wrong with column slicing
-        FrameSlice frame_slice{
-                std::make_shared<StreamDescriptor>(frame_->desc()),
-                {col_range_start, col_range_start + frame_->desc().field_count()},
-                {frame_->offset, row_count}
-        };
+        const auto frame_slice = [&]() {
+            if (dynamic_schema_) {
+                return FrameSlice{
+                        std::make_shared<StreamDescriptor>(frame_->desc()),
+                        {col_range_start, frame_->desc().field_count()},
+                        {frame_->offset, row_count}
+                };
+            } else {
+                return FrameSlice{
+                        segments.front().descriptor_ptr(), *proc.col_ranges_->front(), {frame_->offset, row_count}
+                };
+            }
+        }();
         WriteToSegmentTask write_to_segment_task{
                 frame_,
                 frame_slice,
