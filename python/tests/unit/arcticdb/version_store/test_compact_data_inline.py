@@ -61,6 +61,28 @@ def test_basic_dynamic_schema(in_memory_store_factory, index):
     assert len(lib.read_index(sym)) == 1
 
 
+@pytest.mark.parametrize("index", [None, "ts"])
+def test_column_slicing(in_memory_store_factory, index):
+    lib = in_memory_store_factory(column_group_size=2)
+    sym = "test_column_slicing"
+    df_0 = pd.DataFrame(
+        {f"col_{idx}": np.arange(20) for idx in range(5)},
+        index=None if index is None else pd.date_range("2026-01-01", periods=20),
+    )
+    lib.write(sym, df_0)
+    df_1 = pd.DataFrame(
+        {f"col_{idx}": np.arange(20, 30) for idx in range(5)},
+        index=None if index is None else pd.date_range("2026-01-21", periods=10),
+    )
+    lib.append(sym, df_1, compact_data_inline=True)
+    expected = pd.concat([df_0, df_1])
+    if index is None:
+        expected = expected.reset_index(drop=True)
+    received = lib.read(sym).data
+    assert_frame_equal(expected, received)
+    assert len(lib.read_index(sym)) == 3
+
+
 # TODO: Tests
 # - with timeseries index
 # - appending an empty df with compact_data_inline=True defrags existing data
