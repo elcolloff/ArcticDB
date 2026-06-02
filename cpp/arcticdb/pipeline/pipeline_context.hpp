@@ -10,6 +10,7 @@
 
 #include <arcticdb/column_store/string_pool.hpp>
 #include <arcticdb/pipeline/frame_slice.hpp>
+#include <arcticdb/pipeline/index_segment_reader.hpp>
 #include <arcticdb/util/bitset.hpp>
 #include <memory>
 
@@ -131,6 +132,9 @@ struct PipelineContext : public std::enable_shared_from_this<PipelineContext> {
     std::optional<SegmentInMemory> multi_key_;
     std::vector<unsigned char> compacted_;
     std::optional<size_t> incompletes_after_;
+    // Used in read-modify-write pipelines for schema checks
+    // TODO: Make schema checks work with StreamDescriptor and NormalizationMetadata rather than IndexSegmentReader
+    std::optional<index::IndexSegmentReader> index_segment_reader_;
     /// Used to override the default values of types when the NullValueReducer fills missing segments. For example, in
     /// the sum unordered aggregation and the sum resampling clause, the value must 0 even if the output type is float.
     ankerl::unordered_dense::map<std::string, Value> default_values_;

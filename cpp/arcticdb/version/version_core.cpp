@@ -1344,18 +1344,18 @@ static void read_indexed_keys_to_pipeline(
         const std::shared_ptr<PipelineContext>& pipeline_context, ReadQuery& read_query,
         const ReadOptions& read_options, IndexInformation& index_information
 ) {
-    auto maybe_reader = get_index_segment_reader(pipeline_context, std::move(index_information.index_));
-    if (!maybe_reader)
+    pipeline_context->index_segment_reader_ =
+            get_index_segment_reader(pipeline_context, std::move(index_information.index_));
+    if (!pipeline_context->index_segment_reader_)
         return;
 
-    auto index_segment_reader = std::move(*maybe_reader);
-    ARCTICDB_DEBUG(log::version(), "Read index segment with {} keys", index_segment_reader.size());
-    check_can_read_index_only_if_required(index_segment_reader, read_query);
-    add_index_columns_to_query(read_query, index_segment_reader.tsd());
+    ARCTICDB_DEBUG(log::version(), "Read index segment with {} keys", pipeline_context->index_segment_reader_->size());
+    check_can_read_index_only_if_required(*pipeline_context->index_segment_reader_, read_query);
+    add_index_columns_to_query(read_query, pipeline_context->index_segment_reader_->tsd());
 
-    const auto& tsd = index_segment_reader.tsd();
+    const auto& tsd = pipeline_context->index_segment_reader_->tsd();
     read_query.convert_to_positive_row_filter(static_cast<int64_t>(tsd.total_rows()));
-    const bool bucketize_dynamic = index_segment_reader.bucketize_dynamic();
+    const bool bucketize_dynamic = pipeline_context->index_segment_reader_->bucketize_dynamic();
     pipeline_context->desc_ = tsd.as_stream_descriptor();
 
     const bool dynamic_schema = opt_false(read_options.dynamic_schema());
@@ -1368,14 +1368,15 @@ static void read_indexed_keys_to_pipeline(
         queries.push_back(create_column_stats_filter(std::move(data), tsd, std::move(query_metadata)));
     }
 
-    pipeline_context->slice_and_keys_ = filter_index(index_segment_reader, combine_filter_functions(queries));
+    pipeline_context->slice_and_keys_ =
+            filter_index(*pipeline_context->index_segment_reader_, combine_filter_functions(queries));
     pipeline_context->total_rows_ = pipeline_context->calc_rows();
-    pipeline_context->rows_ = index_segment_reader.tsd().total_rows();
+    pipeline_context->rows_ = pipeline_context->index_segment_reader_->tsd().total_rows();
     pipeline_context->norm_meta_ = std::make_unique<arcticdb::proto::descriptors::NormalizationMetadata>(
-            std::move(*index_segment_reader.mutable_tsd().mutable_proto().mutable_normalization())
+            pipeline_context->index_segment_reader_->tsd().proto().normalization()
     );
     pipeline_context->user_meta_ = std::make_unique<arcticdb::proto::descriptors::UserDefinedMetadata>(
-            std::move(*index_segment_reader.mutable_tsd().mutable_proto().mutable_user_meta())
+            pipeline_context->index_segment_reader_->tsd().proto().user_meta()
     );
     pipeline_context->bucketize_dynamic_ = bucketize_dynamic;
     check_can_perform_processing(pipeline_context, read_query);
@@ -3230,6 +3231,13 @@ folly::Future<std::optional<VersionedItem>> compact_data_impl(
     // TODO: Make this async for batch methods
     std::shared_ptr<PipelineContext> pipeline_context =
             setup_pipeline_context(store, std::move(resolved), *read_query, {});
+    if (frame) {
+        // TODO: Better error message
+        util::check(pipeline_context->index_segment_reader_.has_value(), "PANIC");
+        fix_descriptor_mismatch_or_throw(
+                APPEND, write_options.dynamic_schema, *pipeline_context->index_segment_reader_, *frame, false
+        );
+    }
     IndexPartialKey target_partial_index_key{stream_id, update_info.next_version_id_};
     ReadOptions read_options;
     read_options.set_dynamic_schema(write_options.dynamic_schema);

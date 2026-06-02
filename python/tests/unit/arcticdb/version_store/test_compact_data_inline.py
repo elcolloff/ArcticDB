@@ -83,6 +83,22 @@ def test_column_slicing(in_memory_store_factory, index):
     assert len(lib.read_index(sym)) == 3
 
 
+def test_schema_mismatch_static(in_memory_store_factory):
+    lib = in_memory_store_factory()
+    sym = "test_schema_mismatch_static"
+    df_0 = pd.DataFrame({"col_0": [0]})
+    lib.write(sym, df_0)
+    df_1 = pd.DataFrame({"col_1": [0]})
+    with pytest.raises(Exception) as e_without_arg:
+        lib.append(sym, df_1)
+    with pytest.raises(Exception) as e_with_arg:
+        lib.append(sym, df_1, compact_data_inline=True)
+    print("fin")
+    assert e_with_arg.type == e_without_arg.type
+    assert e_with_arg.typename == e_without_arg.typename
+    assert e_with_arg.value.args[0] == e_without_arg.value.args[0]
+
+
 # TODO: Tests
 # - with timeseries index
 # - appending an empty df with compact_data_inline=True defrags existing data
