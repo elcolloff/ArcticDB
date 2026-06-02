@@ -34,3 +34,4 @@ def test_basic(in_memory_store_factory):
 # - with column slicing
 # - with dynamic schema
 # - with data that needs writing (and slicing) after what gets combined with existing data
+# - with fortran-style data

@@ -36,7 +36,7 @@ struct WriteToSegmentTask : public async::BaseTask {
     WriteToSegmentTask(
             std::shared_ptr<InputFrame> frame, FrameSlice slice,
             folly::Function<PartialKey(const FrameSlice&)>&& partial_key_gen, size_t slice_num_for_column,
-            bool sparsify_floats
+            bool sparsify_floats = false
     );
 
     std::tuple<PartialKey, SegmentInMemory, FrameSlice> operator()();

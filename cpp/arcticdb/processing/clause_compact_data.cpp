@@ -224,8 +224,7 @@ std::vector<EntityId> CompactDataClause::process(std::vector<EntityId>&& entity_
                 frame_,
                 frame_slice,
                 [](const FrameSlice&) { return PartialKey{}; },
-                0, // TODO: This will be wrong for column sliced data
-                false
+                0,
         };
         auto segment_from_frame = std::get<SegmentInMemory>(write_to_segment_task());
         segments.emplace_back(std::move(segment_from_frame));

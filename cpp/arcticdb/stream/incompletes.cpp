@@ -412,7 +412,6 @@ void do_sort(SegmentInMemory& mutable_seg, const std::vector<std::string> sort_c
     arcticdb::proto::descriptors::NormalizationMetadata norm_meta = frame->norm_meta;
     auto user_meta = frame->user_meta;
     auto bucketize_dynamic = frame->bucketize_dynamic;
-    bool sparsify_floats{false};
 
     TypedStreamVersion typed_stream_version{stream_id, VersionId{0}, KeyType::APPEND_DATA};
     return folly::collect(
@@ -421,7 +420,6 @@ void do_sort(SegmentInMemory& mutable_seg, const std::vector<std::string> sort_c
                            [frame,
                             key = std::move(key),
                             store,
-                            sparsify_floats,
                             typed_stream_version = std::move(typed_stream_version),
                             bucketize_dynamic,
                             de_dup_map,
@@ -432,8 +430,7 @@ void do_sort(SegmentInMemory& mutable_seg, const std::vector<std::string> sort_c
                                                                      frame,
                                                                      slice.first,
                                                                      get_partial_key_gen(frame, typed_stream_version),
-                                                                     slice.second,
-                                                                     sparsify_floats
+                                                                     slice.second
                                                              ))
                                        .thenValue([store, de_dup_map, bucketize_dynamic, desc, norm_meta, user_meta](
                                                           std::tuple<PartialKey, SegmentInMemory, FrameSlice>&& ks
