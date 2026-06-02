@@ -49,7 +49,11 @@ def test_basic_dynamic_schema(in_memory_store_factory, index):
     )
     lib.write(sym, df_0)
     df_1 = pd.DataFrame(
-        {"col_2": np.arange(60, 70, dtype=np.float64), "col_1": np.arange(40, 50, dtype=np.float64)},
+        {
+            "col_3": np.arange(100, 110, dtype=np.float64),
+            "col_2": np.arange(60, 70, dtype=np.float64),
+            "col_1": np.arange(40, 50, dtype=np.float64),
+        },
         index=None if index is None else pd.date_range("2026-01-21", periods=10),
     )
     lib.append(sym, df_1, compact_data_inline=True)
@@ -88,12 +92,36 @@ def test_schema_mismatch_static(in_memory_store_factory):
     sym = "test_schema_mismatch_static"
     df_0 = pd.DataFrame({"col_0": [0]})
     lib.write(sym, df_0)
+    # Different column sets
     df_1 = pd.DataFrame({"col_1": [0]})
     with pytest.raises(Exception) as e_without_arg:
         lib.append(sym, df_1)
     with pytest.raises(Exception) as e_with_arg:
         lib.append(sym, df_1, compact_data_inline=True)
-    print("fin")
+    assert e_with_arg.type == e_without_arg.type
+    assert e_with_arg.typename == e_without_arg.typename
+    assert e_with_arg.value.args[0] == e_without_arg.value.args[0]
+    # Different column type
+    df_1 = pd.DataFrame({"col_0": ["hello"]})
+    with pytest.raises(Exception) as e_without_arg:
+        lib.append(sym, df_1)
+    with pytest.raises(Exception) as e_with_arg:
+        lib.append(sym, df_1, compact_data_inline=True)
+    assert e_with_arg.type == e_without_arg.type
+    assert e_with_arg.typename == e_without_arg.typename
+    assert e_with_arg.value.args[0] == e_without_arg.value.args[0]
+
+
+def test_schema_mismatch_dynamic(in_memory_store_factory):
+    lib = in_memory_store_factory(dynamic_schema=True)
+    sym = "test_schema_mismatch_dynamic"
+    df_0 = pd.DataFrame({"col_0": [0]})
+    lib.write(sym, df_0)
+    df_1 = pd.DataFrame({"col_0": ["hello"]})
+    with pytest.raises(Exception) as e_without_arg:
+        lib.append(sym, df_1)
+    with pytest.raises(Exception) as e_with_arg:
+        lib.append(sym, df_1, compact_data_inline=True)
     assert e_with_arg.type == e_without_arg.type
     assert e_with_arg.typename == e_without_arg.typename
     assert e_with_arg.value.args[0] == e_without_arg.value.args[0]
@@ -108,3 +136,4 @@ def test_schema_mismatch_static(in_memory_store_factory):
 # - with data that needs writing (and slicing) after what gets combined with existing data
 # - with fortran-style data
 # - That static/dynamic schema reject appends with mismatching/incompatible schemas
+# - Newly provided metadata is persisted correctly, and old metadata not maintained to match normal append behaviour

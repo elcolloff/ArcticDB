@@ -3223,6 +3223,7 @@ folly::Future<std::optional<VersionedItem>> compact_data_impl(
         uint64_t rows_per_segment, std::shared_ptr<InputFrame> frame
 ) {
     const auto& stream_id = update_info.previous_index_key_->id();
+    const auto dynamic_schema = write_options.dynamic_schema;
     auto read_query = std::make_shared<ReadQuery>();
     read_query->clauses_.push_back(std::make_shared<Clause>(CompactDataClause(rows_per_segment, frame)));
     VersionIdentifier resolved = std::make_shared<IndexInformation>(
@@ -3231,23 +3232,28 @@ folly::Future<std::optional<VersionedItem>> compact_data_impl(
     // TODO: Make this async for batch methods
     std::shared_ptr<PipelineContext> pipeline_context =
             setup_pipeline_context(store, std::move(resolved), *read_query, {});
+    std::shared_ptr<TimeseriesDescriptor> merged_tsd;
     if (frame) {
         // TODO: Better error message
         util::check(pipeline_context->index_segment_reader_.has_value(), "PANIC");
         fix_descriptor_mismatch_or_throw(
-                APPEND, write_options.dynamic_schema, *pipeline_context->index_segment_reader_, *frame, false
+                APPEND, dynamic_schema, *pipeline_context->index_segment_reader_, *frame, false
         );
+        merged_tsd = std::make_shared<TimeseriesDescriptor>(index::get_merged_tsd(
+                frame->num_rows + frame->offset, dynamic_schema, pipeline_context->index_segment_reader_->tsd(), frame
+        ));
     }
     IndexPartialKey target_partial_index_key{stream_id, update_info.next_version_id_};
     ReadOptions read_options;
-    read_options.set_dynamic_schema(write_options.dynamic_schema);
+    read_options.set_dynamic_schema(dynamic_schema);
     return read_modify_write_data_keys(store, read_query, read_options, target_partial_index_key, pipeline_context)
             .thenValue(
                     [pipeline_context = std::move(pipeline_context),
                      store,
                      write_options,
                      target_partial_index_key,
-                     read_query](std::vector<SliceAndKey>&& slices_and_keys
+                     read_query,
+                     merged_tsd](std::vector<SliceAndKey>&& slices_and_keys
                     ) -> folly::Future<std::optional<VersionedItem>> {
                         if (slices_and_keys.empty()) {
                             return folly::makeFuture(std::optional<VersionedItem>());
@@ -3296,17 +3302,21 @@ folly::Future<std::optional<VersionedItem>> compact_data_impl(
                         pipeline_context->slice_and_keys_.clear();
                         const size_t row_count = slices_and_keys.back().slice().row_range.second -
                                                  slices_and_keys.front().slice().row_range.first;
-                        TimeseriesDescriptor tsd = make_timeseries_descriptor(
-                                row_count,
-                                std::move(*pipeline_context->desc_),
-                                std::move(*pipeline_context->norm_meta_),
-                                pipeline_context->user_meta_
-                                        ? std::make_optional(std::move(*pipeline_context->user_meta_))
-                                        : std::nullopt,
-                                std::nullopt,
-                                std::nullopt,
-                                write_options.bucketize_dynamic
-                        );
+                        // TODO: Only call make_timeseries_descriptor if needed
+                        TimeseriesDescriptor tsd =
+                                merged_tsd
+                                        ? *merged_tsd
+                                        : make_timeseries_descriptor(
+                                                  row_count,
+                                                  std::move(*pipeline_context->desc_),
+                                                  std::move(*pipeline_context->norm_meta_),
+                                                  pipeline_context->user_meta_
+                                                          ? std::make_optional(std::move(*pipeline_context->user_meta_))
+                                                          : std::nullopt,
+                                                  std::nullopt,
+                                                  std::nullopt,
+                                                  write_options.bucketize_dynamic
+                                          );
                         // String columns always compacted to dynamic UTF-8
                         for (auto& field : tsd.mutable_fields()) {
                             if (is_sequence_type(field.type().data_type())) {

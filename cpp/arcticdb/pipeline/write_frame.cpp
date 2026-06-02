@@ -538,6 +538,8 @@ folly::Future<AtomKey> append_frame(
                 std::make_move_iterator(std::end(slice_and_keys_to_append))
         );
         ranges::sort(slices_to_write);
+        // TODO: Move this before slice and write, it throws if dynamic schema and there are incompatible types in a
+        // column, orphaning data keys
         const auto tsd = index::get_merged_tsd(
                 frame->num_rows + frame->offset, dynamic_schema, index_segment_reader.tsd(), frame
         );
