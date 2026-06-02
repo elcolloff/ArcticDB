@@ -238,9 +238,9 @@ void fix_descriptor_mismatch_or_throw(
         NormalizationOperation operation, bool dynamic_schema, const pipelines::index::IndexSegmentReader& existing_isr,
         const pipelines::InputFrame& new_frame, bool empty_types
 ) {
-    check_normalization_index_match(operation, existing_isr, new_frame, empty_types);
 
     fix_normalization_or_throw(operation == APPEND, existing_isr, new_frame);
+    check_normalization_index_match(operation, existing_isr, new_frame, empty_types);
 
     const auto& old_sd = existing_isr.tsd().as_stream_descriptor();
     // We need to check that the index names match regardless of the dynamic schema setting
