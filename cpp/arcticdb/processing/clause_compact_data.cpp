@@ -202,7 +202,7 @@ std::vector<EntityId> CompactDataClause::process(std::vector<EntityId>&& entity_
     );
     auto total_rows = total_rows_without_frame + (frame_ ? frame_->num_rows : 0);
     ReslicingInfo reslicing_info{total_rows, max_rows_per_segment_};
-    if (frame_) {
+    if (frame_ && frame_->offset == proc.row_ranges_->back()->second) {
         // Work out which slice of the frame we need to combine with segments from disk
         uint64_t row_count{0};
         for (size_t idx = 0; idx < reslicing_info.num_segments; ++idx) {

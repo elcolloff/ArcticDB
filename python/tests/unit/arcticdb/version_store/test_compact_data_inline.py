@@ -31,6 +31,7 @@ def test_basic(in_memory_store_factory):
 
 # TODO: Tests
 # - appending an empty df with compact_data_inline=True defrags existing data
+# - appending with row slices NOT attached to the new frame need compacting
 # - with column slicing
 # - with dynamic schema
 # - with data that needs writing (and slicing) after what gets combined with existing data
