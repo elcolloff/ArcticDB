@@ -35,8 +35,7 @@ def test_basic(in_memory_store_factory, index):
     assert len(lib.read_index(sym)) == 1
 
 
-# @pytest.mark.parametrize("index", [None, "ts"])
-@pytest.mark.parametrize("index", [None])
+@pytest.mark.parametrize("index", [None, "ts"])
 def test_defrag_whole_symbol(in_memory_store_factory, index):
     lib = in_memory_store_factory(segment_row_size=10)
     sym = "test_defrag_whole_symbol"
