@@ -35,6 +35,21 @@ def test_basic(in_memory_store_factory, index):
     assert len(lib.read_index(sym)) == 1
 
 
+# @pytest.mark.parametrize("index", [None, "ts"])
+@pytest.mark.parametrize("index", [None])
+def test_defrag_whole_symbol(in_memory_store_factory, index):
+    lib = in_memory_store_factory(segment_row_size=10)
+    sym = "test_defrag_whole_symbol"
+    df = pd.DataFrame({"col": np.arange(20)}, index=None if index is None else pd.date_range("2026-01-01", periods=20))
+    lib.write(sym, df[:5])
+    lib.append(sym, df[5:10])
+    lib.append(sym, df[10:15])
+    lib.append(sym, df[15:], compact_data_inline=True)
+    received = lib.read(sym).data
+    assert_frame_equal(df, received)
+    assert len(lib.read_index(sym)) == 2
+
+
 @pytest.mark.parametrize("index", [None, "ts"])
 def test_basic_dynamic_schema(in_memory_store_factory, index):
     lib = in_memory_store_factory(dynamic_schema=True)
@@ -137,3 +152,4 @@ def test_schema_mismatch_dynamic(in_memory_store_factory):
 # - with fortran-style data
 # - That static/dynamic schema reject appends with mismatching/incompatible schemas
 # - Newly provided metadata is persisted correctly, and old metadata not maintained to match normal append behaviour
+# - Hypothesis

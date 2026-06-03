@@ -219,11 +219,13 @@ std::vector<EntityId> CompactDataClause::process(std::vector<EntityId>&& entity_
                 return FrameSlice{
                         std::make_shared<StreamDescriptor>(frame_->desc()),
                         {col_range_start, frame_->desc().field_count()},
-                        {frame_->offset, row_count}
+                        {frame_->offset, frame_->offset + (row_count - total_rows_without_frame)}
                 };
             } else {
                 return FrameSlice{
-                        segments.front().descriptor_ptr(), *proc.col_ranges_->front(), {frame_->offset, row_count}
+                        segments.front().descriptor_ptr(),
+                        *proc.col_ranges_->front(),
+                        {frame_->offset, frame_->offset + (row_count - total_rows_without_frame)}
                 };
             }
         }();
