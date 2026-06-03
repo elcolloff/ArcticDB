@@ -3253,9 +3253,9 @@ folly::Future<std::optional<VersionedItem>> compact_data_impl(
                      write_options,
                      target_partial_index_key,
                      read_query,
-                     merged_tsd](std::vector<SliceAndKey>&& slices_and_keys
-                    ) -> folly::Future<std::optional<VersionedItem>> {
-                        if (slices_and_keys.empty()) {
+                     merged_tsd,
+                     frame](std::vector<SliceAndKey>&& slices_and_keys) -> folly::Future<std::optional<VersionedItem>> {
+                        if (slices_and_keys.empty() && !frame) {
                             return folly::makeFuture(std::optional<VersionedItem>());
                         }
                         // Use an ordered set so we can binary search afterwards
@@ -3297,6 +3297,69 @@ folly::Future<std::optional<VersionedItem>> compact_data_impl(
                                     first_rows_to_discard.emplace(first_row);
                                 }
                             }
+                        }
+                        if (frame && new_row_ranges.back().second < frame->offset + frame->num_rows) {
+                            auto start_row = new_row_ranges.back().second;
+                            auto remaining_rows_to_write = (frame->offset + frame->num_rows) - start_row;
+                            auto max_rows_per_segment =
+                                    folly::poly_cast<CompactDataClause>(*read_query->clauses_.front())
+                                            .max_rows_per_segment_;
+                            ReslicingInfo reslicing_info{remaining_rows_to_write, max_rows_per_segment};
+                            std::vector<FrameSlice> frame_slices;
+                            for (uint64_t idx = 0; idx < reslicing_info.num_segments; ++idx) {
+                                if (write_options.dynamic_schema) {
+                                    frame_slices.emplace_back(
+                                            std::make_shared<StreamDescriptor>(frame->desc()),
+                                            ColRange{frame->desc().index().field_count(), frame->desc().field_count()},
+                                            RowRange{start_row, start_row + reslicing_info.rows_in_slice(idx)}
+                                    );
+                                } else {
+                                    // TODO: Make this work with column slicing
+                                    frame_slices.emplace_back(
+                                            std::make_shared<StreamDescriptor>(frame->desc()),
+                                            ColRange{frame->desc().index().field_count(), frame->desc().field_count()},
+                                            RowRange{start_row, start_row + reslicing_info.rows_in_slice(idx)}
+                                    );
+                                }
+                                start_row += reslicing_info.rows_in_slice(idx);
+                            }
+                            // Copied from slice_and_write/write_slices, remove duplication. Only difference is
+                            // submitting WriteToSegmentTask to IO executor
+                            TypedStreamVersion tsv{
+                                    target_partial_index_key.id,
+                                    target_partial_index_key.version_id,
+                                    KeyType::TABLE_DATA
+                            };
+                            // TODO: The second element of these pairs will be meaningless. They are only used for
+                            // fortran-style data, need to decide what to do about this
+                            auto slice_and_rowcount = get_slice_and_rowcount(frame_slices);
+                            // These rows are being appended, so dedup isn't possible
+                            auto de_dup_map = std::make_shared<DeDupMap>();
+                            auto window = folly::window(
+                                    std::move(slice_and_rowcount),
+                                    [de_dup_map, frame, tsv, store](auto&& slice) {
+                                        return async::submit_io_task(WriteToSegmentTask(
+                                                                             frame,
+                                                                             slice.first,
+                                                                             get_partial_key_gen(frame, tsv),
+                                                                             slice.second
+                                                                     ))
+                                                .thenValueInline([store, de_dup_map](auto&& ks) {
+                                                    // TODO: Should this be sync?
+                                                    return store->async_write(
+                                                            std::forward<decltype(ks)>(ks), de_dup_map
+                                                    );
+                                                });
+                                    },
+                                    2 * async::TaskScheduler::instance()->io_thread_count()
+                            );
+                            // TODO: Do not call get here, use a continuation
+                            auto new_slices_and_keys = folly::collect(window).via(&async::io_executor()).get();
+                            slices_and_keys.insert(
+                                    slices_and_keys.end(),
+                                    std::make_move_iterator(new_slices_and_keys.begin()),
+                                    std::make_move_iterator(new_slices_and_keys.end())
+                            );
                         }
                         ranges::sort(slices_and_keys);
                         pipeline_context->slice_and_keys_.clear();

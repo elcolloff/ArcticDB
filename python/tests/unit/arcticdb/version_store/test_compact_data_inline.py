@@ -49,6 +49,19 @@ def test_defrag_whole_symbol(in_memory_store_factory, index):
     assert len(lib.read_index(sym)) == 2
 
 
+# @pytest.mark.parametrize("index", [None, "ts"])
+@pytest.mark.parametrize("index", [None])
+def test_defrag_leftover_slices(in_memory_store_factory, index):
+    lib = in_memory_store_factory(segment_row_size=10)
+    sym = "test_defrag_leftover_slices"
+    df = pd.DataFrame({"col": np.arange(20)}, index=None if index is None else pd.date_range("2026-01-01", periods=20))
+    lib.write(sym, df[:5])
+    lib.append(sym, df[5:], compact_data_inline=True)
+    received = lib.read(sym).data
+    assert_frame_equal(df, received)
+    assert len(lib.read_index(sym)) == 2
+
+
 @pytest.mark.parametrize("index", [None, "ts"])
 def test_basic_dynamic_schema(in_memory_store_factory, index):
     lib = in_memory_store_factory(dynamic_schema=True)
