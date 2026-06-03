@@ -154,7 +154,6 @@ def test_schema_mismatch_dynamic(in_memory_store_factory):
 
 
 # TODO: Tests
-# - with timeseries index
 # - appending an empty df with compact_data_inline=True defrags existing data
 # - appending with row slices NOT attached to the new frame need compacting
 # - with column slicing

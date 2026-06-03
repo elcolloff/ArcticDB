@@ -70,11 +70,6 @@ void check_multiindex_matches(
         const pipelines::index::IndexSegmentReader& existing_isr, const pipelines::InputFrame& frame
 ) {
     if (existing_isr.tsd().normalization().has_df()) {
-        ARCTICDB_DEBUG_CHECK(
-                ErrorCode::E_ASSERTION_FAILURE,
-                frame.norm_meta.has_df(),
-                "Existing data is a pandas dataframe but the new data is not"
-        );
         check_multiindex_matches(
                 existing_isr.tsd().normalization().df().common(),
                 existing_isr.tsd().as_stream_descriptor(),
@@ -82,11 +77,6 @@ void check_multiindex_matches(
                 frame.desc()
         );
     } else if (existing_isr.tsd().normalization().has_series()) {
-        ARCTICDB_DEBUG_CHECK(
-                ErrorCode::E_ASSERTION_FAILURE,
-                frame.norm_meta.has_series(),
-                "Existing data is a pandas series but the new data is not"
-        );
         check_multiindex_matches(
                 existing_isr.tsd().normalization().series().common(),
                 existing_isr.tsd().as_stream_descriptor(),
