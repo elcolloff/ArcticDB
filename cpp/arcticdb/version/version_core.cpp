@@ -3236,6 +3236,7 @@ folly::Future<std::optional<VersionedItem>> compact_data_impl(
     if (frame) {
         // TODO: Better error message
         util::check(pipeline_context->index_segment_reader_.has_value(), "PANIC");
+        util::check_rte(!pipeline_context->index_segment_reader_->is_pickled(), "Cannot append to pickled data");
         fix_descriptor_mismatch_or_throw(
                 APPEND, dynamic_schema, *pipeline_context->index_segment_reader_, *frame, false
         );
