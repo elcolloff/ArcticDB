@@ -83,6 +83,7 @@ def test_defrag_existing_data_compacted(in_memory_store_factory):
     assert len(lib.read_index(sym)) == 2
 
 
+# TODO: Parametrize this over total rows being 25, 30, and 35
 def test_defrag_tail_of_existing_data_already_compacted(in_memory_store_factory):
     lib = in_memory_store_factory(segment_row_size=10)
     sym = "test_defrag_tail_of_existing_data_already_compacted"

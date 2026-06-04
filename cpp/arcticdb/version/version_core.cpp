@@ -3325,9 +3325,9 @@ folly::Future<std::optional<VersionedItem>> compact_data_impl(
                                 }
                             }
                         }
-                        if (frame && (new_row_ranges.empty() ||
-                                      new_row_ranges.back().second < frame->offset + frame->num_rows)) {
-                            auto start_row = new_row_ranges.empty() ? frame->offset : new_row_ranges.back().second;
+                        ranges::sort(slices_and_keys);
+                        if (frame && slices_and_keys.back().slice().rows().second < frame->offset + frame->num_rows) {
+                            auto start_row = slices_and_keys.back().slice().rows().second;
                             auto remaining_rows_to_write = (frame->offset + frame->num_rows) - start_row;
                             auto max_rows_per_segment =
                                     folly::poly_cast<CompactDataClause>(*read_query->clauses_.front())
@@ -3389,6 +3389,7 @@ folly::Future<std::optional<VersionedItem>> compact_data_impl(
                                     std::make_move_iterator(new_slices_and_keys.end())
                             );
                         }
+                        // TODO: Avoid double sorting if possible
                         ranges::sort(slices_and_keys);
                         pipeline_context->slice_and_keys_.clear();
                         const size_t row_count = slices_and_keys.back().slice().row_range.second -
