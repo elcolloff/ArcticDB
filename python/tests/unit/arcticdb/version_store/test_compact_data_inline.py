@@ -35,6 +35,17 @@ def test_basic(in_memory_store_factory, index):
     assert len(lib.read_index(sym)) == 1
 
 
+def test_metadata(in_memory_store_factory):
+    lib = in_memory_store_factory()
+    sym = "test_metadata"
+    lib.write(sym, pd.DataFrame({"col": [0]}), metadata="0")
+    lib.append(sym, pd.DataFrame({"col": [1]}), metadata="1", compact_data_inline=True)
+    vit = lib.read(sym)
+    assert vit.metadata == "1"
+    assert_frame_equal(vit.data, pd.DataFrame({"col": [0, 1]}))
+    assert len(lib.read_index(sym)) == 1
+
+
 @pytest.mark.parametrize("index", [None, "ts"])
 def test_defrag_whole_symbol(in_memory_store_factory, index):
     lib = in_memory_store_factory(segment_row_size=10)
@@ -59,6 +70,31 @@ def test_defrag_leftover_slices(in_memory_store_factory, index):
     received = lib.read(sym).data
     assert_frame_equal(df, received)
     assert len(lib.read_index(sym)) == 2
+
+
+def test_defrag_existing_data_compacted(in_memory_store_factory):
+    lib = in_memory_store_factory(segment_row_size=10)
+    sym = "test_defrag_existing_data_compacted"
+    df = pd.DataFrame({"col": np.arange(20)})
+    lib.write(sym, df[:10])
+    lib.append(sym, df[10:], compact_data_inline=True)
+    received = lib.read(sym).data
+    assert_frame_equal(df, received)
+    assert len(lib.read_index(sym)) == 2
+
+
+def test_defrag_tail_of_existing_data_already_compacted(in_memory_store_factory):
+    lib = in_memory_store_factory(segment_row_size=10)
+    sym = "test_defrag_tail_of_existing_data_already_compacted"
+    df = pd.DataFrame({"col": np.arange(30)})
+    lib.write(sym, df[:5])
+    lib.append(sym, df[5:10])
+    lib.append(sym, df[10:20])
+    assert len(lib.read_index(sym)) == 3
+    lib.append(sym, df[20:], compact_data_inline=True)
+    received = lib.read(sym).data
+    assert_frame_equal(df, received)
+    assert len(lib.read_index(sym)) == 3
 
 
 @pytest.mark.parametrize("index", [None, "ts"])
@@ -156,10 +192,6 @@ def test_schema_mismatch_dynamic(in_memory_store_factory):
 # TODO: Tests
 # - appending an empty df with compact_data_inline=True defrags existing data
 # - appending with row slices NOT attached to the new frame need compacting
-# - with column slicing
-# - with dynamic schema
 # - with data that needs writing (and slicing) after what gets combined with existing data
 # - with fortran-style data
-# - That static/dynamic schema reject appends with mismatching/incompatible schemas
-# - Newly provided metadata is persisted correctly, and old metadata not maintained to match normal append behaviour
 # - Hypothesis
