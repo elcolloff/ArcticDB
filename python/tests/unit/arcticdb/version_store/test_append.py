@@ -311,38 +311,38 @@ class TestAppend:
         result_df = lib.read(symbol).data
         assert_frame_equal(result_df, expected_df)
 
-    # def test_append_snapshot_delete(self, lmdb_version_store, compact_data_inline):
-    #     symbol = "test_append_snapshot_delete"
-    #     if sys.platform == "win32":
-    #         # Keep it smaller on Windows due to restricted LMDB size
-    #         row_count = 1000
-    #     else:
-    #         row_count = 1000000
-    #     idx1 = np.arange(0, row_count)
-    #     d1 = {"x": np.arange(row_count, 2 * row_count, dtype=np.int64)}
-    #     df1 = pd.DataFrame(data=d1, index=idx1)
-    #     lmdb_version_store.write(symbol, df1)
-    #     vit = lmdb_version_store.read(symbol)
-    #     assert_frame_equal(vit.data, df1)
-    #
-    #     lmdb_version_store.snapshot("my_snap")
-    #
-    #     idx2 = np.arange(row_count, 2 * row_count)
-    #     d2 = {"x": np.arange(2 * row_count, 3 * row_count, dtype=np.int64)}
-    #     df2 = pd.DataFrame(data=d2, index=idx2)
-    #     lmdb_version_store.append(symbol, df2, compact_data_inline=compact_data_inline)
-    #     vit = lmdb_version_store.read(symbol)
-    #     expected = pd.concat([df1, df2])
-    #     assert_frame_equal(vit.data, expected)
-    #
-    #     lmdb_version_store.delete(symbol)
-    #     versions = lmdb_version_store.list_versions()
-    #     assert len(versions) == 1
-    #     version = versions[0]
-    #     version.pop("date")
-    #     assert version == {"deleted": True, "snapshots": ["my_snap"], "symbol": symbol, "version": 0}
-    #
-    #     assert_frame_equal(lmdb_version_store.read(symbol, as_of="my_snap").data, df1)
+    def test_append_snapshot_delete(self, lmdb_version_store, compact_data_inline):
+        symbol = "test_append_snapshot_delete"
+        if sys.platform == "win32":
+            # Keep it smaller on Windows due to restricted LMDB size
+            row_count = 1000
+        else:
+            row_count = 1000000
+        idx1 = np.arange(0, row_count)
+        d1 = {"x": np.arange(row_count, 2 * row_count, dtype=np.int64)}
+        df1 = pd.DataFrame(data=d1, index=idx1)
+        lmdb_version_store.write(symbol, df1)
+        vit = lmdb_version_store.read(symbol)
+        assert_frame_equal(vit.data, df1)
+
+        lmdb_version_store.snapshot("my_snap")
+
+        idx2 = np.arange(row_count, 2 * row_count)
+        d2 = {"x": np.arange(2 * row_count, 3 * row_count, dtype=np.int64)}
+        df2 = pd.DataFrame(data=d2, index=idx2)
+        lmdb_version_store.append(symbol, df2, compact_data_inline=compact_data_inline)
+        vit = lmdb_version_store.read(symbol)
+        expected = pd.concat([df1, df2])
+        assert_frame_equal(vit.data, expected)
+
+        lmdb_version_store.delete(symbol)
+        versions = lmdb_version_store.list_versions()
+        assert len(versions) == 1
+        version = versions[0]
+        version.pop("date")
+        assert version == {"deleted": True, "snapshots": ["my_snap"], "symbol": symbol, "version": 0}
+
+        assert_frame_equal(lmdb_version_store.read(symbol, as_of="my_snap").data, df1)
 
     def test_append_out_of_order_throws(self, lmdb_version_store, compact_data_inline):
         lib: NativeVersionStore = lmdb_version_store

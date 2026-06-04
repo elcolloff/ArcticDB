@@ -3325,8 +3325,9 @@ folly::Future<std::optional<VersionedItem>> compact_data_impl(
                                 }
                             }
                         }
-                        if (frame && new_row_ranges.back().second < frame->offset + frame->num_rows) {
-                            auto start_row = new_row_ranges.back().second;
+                        if (frame && (new_row_ranges.empty() ||
+                                      new_row_ranges.back().second < frame->offset + frame->num_rows)) {
+                            auto start_row = new_row_ranges.empty() ? frame->offset : new_row_ranges.back().second;
                             auto remaining_rows_to_write = (frame->offset + frame->num_rows) - start_row;
                             auto max_rows_per_segment =
                                     folly::poly_cast<CompactDataClause>(*read_query->clauses_.front())
