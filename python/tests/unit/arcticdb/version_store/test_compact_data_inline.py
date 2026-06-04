@@ -83,11 +83,11 @@ def test_defrag_existing_data_compacted(in_memory_store_factory):
     assert len(lib.read_index(sym)) == 2
 
 
-# TODO: Parametrize this over total rows being 25, 30, and 35
-def test_defrag_tail_of_existing_data_already_compacted(in_memory_store_factory):
+@pytest.mark.parametrize("total_rows", [25, 30, 35])
+def test_defrag_tail_of_existing_data_already_compacted(in_memory_store_factory, total_rows):
     lib = in_memory_store_factory(segment_row_size=10)
     sym = "test_defrag_tail_of_existing_data_already_compacted"
-    df = pd.DataFrame({"col": np.arange(30)})
+    df = pd.DataFrame({"col": np.arange(total_rows)})
     lib.write(sym, df[:5])
     lib.append(sym, df[5:10])
     lib.append(sym, df[10:20])
@@ -95,7 +95,7 @@ def test_defrag_tail_of_existing_data_already_compacted(in_memory_store_factory)
     lib.append(sym, df[20:], compact_data_inline=True)
     received = lib.read(sym).data
     assert_frame_equal(df, received)
-    assert len(lib.read_index(sym)) == 3
+    assert len(lib.read_index(sym)) == (4 if total_rows == 35 else 3)
 
 
 @pytest.mark.parametrize("index", [None, "ts"])
@@ -191,8 +191,7 @@ def test_schema_mismatch_dynamic(in_memory_store_factory):
 
 
 # TODO: Tests
-# - appending an empty df with compact_data_inline=True defrags existing data
-# - appending with row slices NOT attached to the new frame need compacting
+# - appending an empty df with compact_data_inline=True defrags existing data - check what current behaviour is if schema is wrong and match it
 # - with data that needs writing (and slicing) after what gets combined with existing data
 # - with fortran-style data
 # - Hypothesis
