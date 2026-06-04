@@ -3220,7 +3220,7 @@ folly::Future<CompactDataInfo> compact_data_explain_plan_impl(
 
 folly::Future<std::optional<VersionedItem>> compact_data_impl(
         const std::shared_ptr<Store>& store, const UpdateInfo& update_info, const WriteOptions& write_options,
-        uint64_t rows_per_segment, std::shared_ptr<InputFrame> frame
+        uint64_t rows_per_segment, std::shared_ptr<InputFrame> frame, bool validate_index
 ) {
     const auto& stream_id = update_info.previous_index_key_->id();
     const auto dynamic_schema = write_options.dynamic_schema;
@@ -3239,6 +3239,30 @@ folly::Future<std::optional<VersionedItem>> compact_data_impl(
         util::check_rte(!pipeline_context->index_segment_reader_->is_pickled(), "Cannot append to pickled data");
         fix_descriptor_mismatch_or_throw(
                 APPEND, dynamic_schema, *pipeline_context->index_segment_reader_, *frame, false
+        );
+        if (validate_index) {
+            sorted_data_check_append(*frame, *pipeline_context->index_segment_reader_);
+        }
+        util::variant_match(
+                frame->index,
+                [&pipeline_context, &frame, &write_options](const TimeseriesIndex&) {
+                    util::check(frame->has_index(), "Cannot append timeseries without index");
+                    if (pipeline_context->index_segment_reader_->tsd().total_rows() != 0 && frame->num_rows != 0) {
+                        auto first_index = NumericIndex{frame->index_value_at(0)};
+                        auto prev = std::get<NumericIndex>(
+                                pipeline_context->index_segment_reader_->last()->key().end_index()
+                        );
+                        util::check(
+                                write_options.ignore_sort_order || prev - 1 <= first_index,
+                                "Can't append dataframe with start index {} to existing sequence ending at {}",
+                                util::format_timestamp(first_index),
+                                util::format_timestamp(prev)
+                        );
+                    }
+                },
+                [](const auto&) {
+                    // Do whatever, but you can't range search it
+                }
         );
         merged_tsd = std::make_shared<TimeseriesDescriptor>(index::get_merged_tsd(
                 frame->num_rows + frame->offset, dynamic_schema, pipeline_context->index_segment_reader_->tsd(), frame

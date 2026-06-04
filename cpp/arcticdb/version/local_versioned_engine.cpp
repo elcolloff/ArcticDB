@@ -1869,11 +1869,15 @@ VersionedItem LocalVersionedEngine::append_internal(
     if (update_info.previous_index_key_.has_value()) {
         // TODO: Refactor to remove duplication here and in compact_data_internal
         if (compact_data_inline) {
-            auto versioned_item =
-                    compact_data_impl(
-                            store(), update_info, get_write_options(), get_write_options().segment_row_size, frame
-                    )
-                            .get();
+            auto versioned_item = compact_data_impl(
+                                          store(),
+                                          update_info,
+                                          get_write_options(),
+                                          get_write_options().segment_row_size,
+                                          frame,
+                                          validate_index
+            )
+                                          .get();
             if (versioned_item.has_value()) {
                 write_version_and_prune_previous(
                         prune_previous_versions, versioned_item->key_, update_info.previous_index_key_
