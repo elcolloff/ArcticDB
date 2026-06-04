@@ -150,6 +150,17 @@ def test_column_slicing(in_memory_store_factory, index):
     assert len(lib.read_index(sym)) == 3
 
 
+def test_append_empty_frame_no_work_to_do(in_memory_store_factory):
+    lib = in_memory_store_factory(segment_row_size=10)
+    sym = "test_append_empty_frame_no_work_to_do"
+    lib.write(sym, pd.DataFrame({"col": np.arange(10)}))
+    # Schema checks happen after empty input frame checks, so we don't need the same column set
+    lib.append(sym, pd.DataFrame())
+    assert lib.read(sym).version == 0
+    lib.append(sym, pd.DataFrame(), compact_data_inline=True)
+    assert lib.read(sym).version == 0
+
+
 def test_schema_mismatch_static(in_memory_store_factory):
     lib = in_memory_store_factory()
     sym = "test_schema_mismatch_static"
