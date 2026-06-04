@@ -1297,15 +1297,19 @@ class NativeVersionStore:
         -------
         None
         """
-        if column_stats is None:
-            column_stats = self._auto_column_stats(symbol, as_of)
+        # if no column stats specified in the function call, fallback to columns stats over all columns
+        if column_stats is None: 
+            column_stats = self._get_eligible_column_stats_spec(symbol, as_of)
             if not column_stats:
                 return
-        column_stats = self._get_column_stats(column_stats)
+            
+        column_stats = self._convert_to_native_column_stats(column_stats)
         version_query = self._get_version_query(as_of)
-        self.version_store.create_column_stats_version(symbol, column_stats, version_query)
+        read_query = _PythonVersionStoreReadQuery()
 
-    def _auto_column_stats(
+        self.version_store.create_column_stats_version(symbol, column_stats, version_query, read_query)
+
+    def _get_eligible_column_stats_spec(
         self, symbol: str, as_of: Optional[VersionQueryInput]
     ) -> Dict[str, Set[str]]:
         info = self.get_info(symbol, version=as_of)
@@ -1317,11 +1321,7 @@ class NativeVersionStore:
         }
         columns = info["col_names"]["columns"]
         dtypes = info["dtype"]
-        return {
-            str(col): {"MINMAX"}
-            for col, dtype in zip(columns, dtypes)
-            if dtype.value_type in numeric_value_types
-        }
+        return {str(col): {"MINMAX"} for col, dtype in zip(columns, dtypes) if dtype.value_type in numeric_value_types}
 
     def drop_column_stats(
         self, symbol: str, column_stats: Optional[Dict[str, Set[str]]] = None, as_of: Optional[VersionQueryInput] = None
@@ -1343,7 +1343,7 @@ class NativeVersionStore:
         -------
         None
         """
-        column_stats = self._get_column_stats(column_stats)
+        column_stats = self._convert_to_native_column_stats(column_stats)
         version_query = self._get_version_query(as_of)
         self.version_store.drop_column_stats_version(symbol, column_stats, version_query)
 
@@ -2413,7 +2413,7 @@ class NativeVersionStore:
         )
         return version_query, read_options, read_query, output_format
 
-    def _get_column_stats(self, column_stats):
+    def _convert_to_native_column_stats(self, column_stats):
         if column_stats is None:
             return None
         for k, v in column_stats.items():
