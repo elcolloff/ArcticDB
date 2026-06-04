@@ -1875,7 +1875,8 @@ VersionedItem LocalVersionedEngine::append_internal(
                                           get_write_options(),
                                           get_write_options().segment_row_size,
                                           frame,
-                                          validate_index
+                                          validate_index,
+                                          cfg().write_options().empty_types()
             )
                                           .get();
             if (versioned_item.has_value()) {

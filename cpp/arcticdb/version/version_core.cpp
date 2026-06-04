@@ -3222,7 +3222,7 @@ folly::Future<CompactDataInfo> compact_data_explain_plan_impl(
 
 folly::Future<std::optional<VersionedItem>> compact_data_impl(
         const std::shared_ptr<Store>& store, const UpdateInfo& update_info, const WriteOptions& write_options,
-        uint64_t rows_per_segment, std::shared_ptr<InputFrame> frame, bool validate_index
+        uint64_t rows_per_segment, std::shared_ptr<InputFrame> frame, bool validate_index, bool empty_types
 ) {
     const auto& stream_id = update_info.previous_index_key_->id();
     const auto dynamic_schema = write_options.dynamic_schema;
@@ -3240,7 +3240,7 @@ folly::Future<std::optional<VersionedItem>> compact_data_impl(
         util::check(pipeline_context->index_segment_reader_.has_value(), "PANIC");
         util::check_rte(!pipeline_context->index_segment_reader_->is_pickled(), "Cannot append to pickled data");
         fix_descriptor_mismatch_or_throw(
-                APPEND, dynamic_schema, *pipeline_context->index_segment_reader_, *frame, false
+                APPEND, dynamic_schema, *pipeline_context->index_segment_reader_, *frame, empty_types
         );
         if (validate_index) {
             sorted_data_check_append(*frame, *pipeline_context->index_segment_reader_);
