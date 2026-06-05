@@ -1868,6 +1868,7 @@ VersionedItem LocalVersionedEngine::append_internal(
 
     if (update_info.previous_index_key_.has_value()) {
         // TODO: Refactor to remove duplication here and in compact_data_internal
+        // TODO: Compact on upsert as well?
         if (compact_data_inline) {
             auto versioned_item = compact_data_impl(
                                           store(),
