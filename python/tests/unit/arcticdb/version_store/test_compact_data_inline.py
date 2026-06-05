@@ -174,6 +174,19 @@ def test_append_empty_frame_compacts_existing_data(in_memory_store_factory):
     assert len(lib.read_index(sym)) == 1
 
 
+def test_fortran_ordered_data(in_memory_store_factory):
+    lib = in_memory_store_factory(segment_row_size=10)
+    sym = "test_fortran_ordered_data"
+    cols = ["col_0", "col_1"]
+    df_0 = pd.DataFrame(np.random.randint(0, 100, size=(5, 2)), columns=cols)
+    lib.write(sym, df_0)
+    df_1 = pd.DataFrame(np.random.randint(0, 100, size=(5, 2)), columns=cols)
+    lib.append(sym, df_1, compact_data_inline=True)
+    assert len(lib.read_index(sym)) == 1
+    received = lib.read(sym).data
+    assert_frame_equal(received, pd.concat([df_0, df_1]).reset_index(drop=True))
+
+
 def test_schema_mismatch_static(in_memory_store_factory):
     lib = in_memory_store_factory()
     sym = "test_schema_mismatch_static"

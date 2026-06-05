@@ -48,6 +48,7 @@ std::tuple<PartialKey, SegmentInMemory, FrameSlice> WriteToSegmentTask::operator
     magic_.check();
     auto key = partial_key_gen_(slice_);
     auto seg = frame_->has_segment() ? slice_segment() : slice_tensors();
+    seg.set_row_data((slice_.rows().second - slice_.rows().first) - 1);
     seg.descriptor().set_id(key.stream_id);
     return {std::move(key), std::move(seg), std::move(slice_)};
 }
@@ -73,7 +74,6 @@ SegmentInMemory WriteToSegmentTask::slice_segment() const {
                 std::make_shared<Column>(slice_column(frame, col_idx, offset, seg.string_pool()))
         );
     }
-    seg.set_row_data((slice_.rows().second - slice_.rows().first) - 1);
     return seg;
 }
 
