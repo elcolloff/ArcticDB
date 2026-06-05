@@ -225,10 +225,3 @@ def test_schema_mismatch_dynamic(in_memory_store_factory):
     assert e_with_arg.type == e_without_arg.type
     assert e_with_arg.typename == e_without_arg.typename
     assert e_with_arg.value.args[0] == e_without_arg.value.args[0]
-
-
-# TODO: Tests
-# - appending an empty df with compact_data_inline=True defrags existing data - check what current behaviour is if schema is wrong and match it
-# - with data that needs writing (and slicing) after what gets combined with existing data
-# - with fortran-style data
-# - Hypothesis
