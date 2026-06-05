@@ -93,8 +93,6 @@ std::vector<SliceAndKey> flatten_and_fix_rows(
         const std::array<std::vector<SliceAndKey>, 5>& groups, size_t& global_count
 );
 
-std::vector<std::pair<FrameSlice, size_t>> get_slice_and_rowcount(const std::vector<FrameSlice>& slices);
-
 template<typename T>
 requires std::is_same_v<T, SliceAndKey> || std::is_same_v<T, std::vector<SliceAndKey>>
 folly::SemiFuture<std::vector<T>> rollback_on_quota_exceeded(

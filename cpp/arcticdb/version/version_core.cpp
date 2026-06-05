@@ -3358,17 +3358,14 @@ folly::Future<std::optional<VersionedItem>> compact_data_impl(
                                     target_partial_index_key.version_id,
                                     KeyType::TABLE_DATA
                             };
-                            // TODO: The second element of these pairs will be meaningless. They are only used for
-                            // fortran-style data, need to decide what to do about this
-                            auto slice_and_rowcount = get_slice_and_rowcount(frame_slices);
                             // These rows are being appended, so dedup isn't possible
                             auto de_dup_map = std::make_shared<DeDupMap>();
                             auto window = folly::window(
-                                    std::move(slice_and_rowcount),
-                                    [de_dup_map, frame, tsv, store](auto&& slice) {
+                                    std::move(frame_slices),
+                                    [de_dup_map, frame, tsv, store](auto&& frame_slice) {
                                         return async::submit_io_task(
                                                        WriteToSegmentTask(
-                                                               frame, slice.first, get_partial_key_gen(frame, tsv)
+                                                               frame, frame_slice, get_partial_key_gen(frame, tsv)
                                                        )
                                         )
                                                 .thenValueInline([store, de_dup_map](auto&& ks) {

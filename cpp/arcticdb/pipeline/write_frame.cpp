@@ -391,24 +391,6 @@ SegmentInMemory WriteToSegmentTask::slice_tensors() const {
     });
 }
 
-std::vector<std::pair<FrameSlice, size_t>> get_slice_and_rowcount(const std::vector<FrameSlice>& slices) {
-    std::vector<std::pair<FrameSlice, size_t>> slice_and_rowcount;
-    slice_and_rowcount.reserve(slices.size());
-    size_t slice_num_for_column = 0;
-    std::optional<size_t> first_row;
-    for (const auto& slice : slices) {
-        if (!first_row)
-            first_row = slice.row_range.first;
-
-        if (slice.row_range.first == *first_row)
-            slice_num_for_column = 0;
-
-        slice_and_rowcount.emplace_back(slice, slice_num_for_column);
-        ++slice_num_for_column;
-    }
-    return slice_and_rowcount;
-}
-
 int64_t write_window_size() {
     return ConfigsMap::instance()->get_int(
             "VersionStore.BatchWriteWindow", int64_t(2 * async::TaskScheduler::instance()->io_thread_count())
@@ -422,15 +404,12 @@ folly::SemiFuture<std::vector<folly::Try<SliceAndKey>>> write_slices(
 ) {
     ARCTICDB_SAMPLE(WriteSlices, 0)
 
-    // TODO: Remove get_slice_and_rowcount entirely?
-    auto slice_and_rowcount = get_slice_and_rowcount(slices);
-
     int64_t write_window = write_window_size();
     auto window = folly::window(
-            std::move(slice_and_rowcount),
+            std::move(slices),
             [de_dup_map, frame, key = std::move(key), sink, sparsify_floats](auto&& slice) {
                 return async::submit_cpu_task(
-                               WriteToSegmentTask(frame, slice.first, get_partial_key_gen(frame, key), sparsify_floats)
+                               WriteToSegmentTask(frame, slice, get_partial_key_gen(frame, key), sparsify_floats)
                 )
                         .then([sink, de_dup_map](auto&& ks) {
                             return sink->async_write(std::forward<decltype(ks)>(ks), de_dup_map);

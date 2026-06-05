@@ -69,15 +69,14 @@ void write_dataframe_to_file_internal(
     auto slices = slice(*frame, slicing);
     ARCTICDB_SUBSAMPLE_DEFAULT(SliceAndWrite)
 
-    auto slice_and_rowcount = get_slice_and_rowcount(slices);
     auto key_seg_futs =
             folly::collect(folly::window(
-                                   std::move(slice_and_rowcount),
+                                   std::move(slices),
                                    [frame,
                                     key = std::move(partial_key),
                                     sparsify_floats = options.sparsify_floats](auto&& slice) {
                                        return async::submit_cpu_task(pipelines::WriteToSegmentTask(
-                                               frame, slice.first, get_partial_key_gen(frame, key), sparsify_floats
+                                               frame, slice, get_partial_key_gen(frame, key), sparsify_floats
                                        ));
                                    },
                                    write_window_size()

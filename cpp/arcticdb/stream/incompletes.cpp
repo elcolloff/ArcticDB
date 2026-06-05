@@ -398,7 +398,6 @@ void do_sort(SegmentInMemory& mutable_seg, const std::vector<std::string> sort_c
     }
 
     util::check(!slices.empty(), "Unexpected empty slice in write_incomplete_frame");
-    auto slice_and_rowcount = get_slice_and_rowcount(slices);
 
     IndexPartialKey key{stream_id, VersionId(0)};
     auto de_dup_map = std::make_shared<DeDupMap>();
@@ -411,7 +410,7 @@ void do_sort(SegmentInMemory& mutable_seg, const std::vector<std::string> sort_c
     TypedStreamVersion typed_stream_version{stream_id, VersionId{0}, KeyType::APPEND_DATA};
     return folly::collect(
                    folly::window(
-                           std::move(slice_and_rowcount),
+                           std::move(slices),
                            [frame,
                             key = std::move(key),
                             store,
@@ -421,11 +420,11 @@ void do_sort(SegmentInMemory& mutable_seg, const std::vector<std::string> sort_c
                             desc,
                             norm_meta,
                             user_meta](auto&& slice) {
-                               return async::submit_cpu_task(WriteToSegmentTask(
-                                                                     frame,
-                                                                     slice.first,
-                                                                     get_partial_key_gen(frame, typed_stream_version)
-                                                             ))
+                               return async::submit_cpu_task(
+                                              WriteToSegmentTask(
+                                                      frame, slice, get_partial_key_gen(frame, typed_stream_version)
+                                              )
+                               )
                                        .thenValue([store, de_dup_map, bucketize_dynamic, desc, norm_meta, user_meta](
                                                           std::tuple<PartialKey, SegmentInMemory, FrameSlice>&& ks
                                                   ) {
