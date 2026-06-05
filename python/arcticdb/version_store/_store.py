@@ -1269,27 +1269,20 @@ class NativeVersionStore:
     def create_column_stats_experimental(
         self,
         symbol: str,
-        column_stats: Optional[Dict[str, Set[str]]] = None,
         as_of: Optional[VersionQueryInput] = None,
     ) -> None:
         """
-        Calculates the specified column statistics for each row-slice for the given symbol. In the future, these
+        Calculates MINMAX column statistics for each row-slice for the given symbol. In the future, these
         statistics will be used by `QueryBuilder` filtering operations to reduce the number of data segments read out
         of storage.
 
-        When `column_stats` is omitted, MINMAX stats are built for every non-index column whose dtype is numeric
-        (uint/int/float) or a UTC nanosecond timestamp. Any pre-existing stats are merged with the newly computed
-        ones (read-modify-write).
+        MINMAX stats are built for every non-index column whose dtype is numeric (uint/int/float) or a UTC nanosecond
+        timestamp. Any pre-existing stats are merged with the newly computed ones (read-modify-write).
 
         Parameters
         ----------
         symbol: `str`
             Symbol name.
-        column_stats: `Optional[Dict[str, Set[str]]], default=None`
-            The column stats to create. If omitted, MINMAX is computed for every supported column.
-            Keys are column names.
-            Values are sets of statistic types to build for that column. Options are:
-                "MINMAX" : store the minimum and maximum value for the column in each row-slice
         as_of : `Optional[VersionQueryInput]`, default=None
             See documentation of `read` method for more details.
 
@@ -1297,12 +1290,10 @@ class NativeVersionStore:
         -------
         None
         """
-        # if no column stats specified in the function call, fallback to columns stats over all columns
-        if column_stats is None: 
-            column_stats = self._get_eligible_column_stats_spec(symbol, as_of)
-            if not column_stats:
-                return
-            
+        column_stats = self._get_eligible_column_stats_spec(symbol, as_of)
+        if not column_stats:
+            return
+
         column_stats = self._convert_to_native_column_stats(column_stats)
         version_query = self._get_version_query(as_of)
         read_query = _PythonVersionStoreReadQuery()
