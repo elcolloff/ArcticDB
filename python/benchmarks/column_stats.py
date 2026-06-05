@@ -402,7 +402,7 @@ class ColumnStatsCreate:
         self.nvs = self.lib._nvs
         self.symbol = _symbol_name(num_rows, ordered=True)
         # Drop stats so time_ measures creation from scratch
-        self.nvs.drop_column_stats(self.symbol)
+        self.nvs.drop_column_stats_experimental(self.symbol)
 
     def time_create_column_stats(self, *args):
         self.nvs.create_column_stats_experimental(self.symbol, COLUMN_STATS)

@@ -1314,7 +1314,7 @@ class NativeVersionStore:
         dtypes = info["dtype"]
         return {str(col): {"MINMAX"} for col, dtype in zip(columns, dtypes) if dtype.value_type in numeric_value_types}
 
-    def drop_column_stats(
+    def drop_column_stats_experimental(
         self, symbol: str, as_of: Optional[VersionQueryInput] = None
     ) -> None:
         """
@@ -1334,7 +1334,7 @@ class NativeVersionStore:
         version_query = self._get_version_query(as_of)
         self.version_store.drop_column_stats_version(symbol, None, version_query)
 
-    def read_column_stats(self, symbol: str, as_of: Optional[VersionQueryInput] = None, **kwargs) -> "pa.Table":
+    def read_column_stats_experimental(self, symbol: str, as_of: Optional[VersionQueryInput] = None, **kwargs) -> "pa.Table":
         """
         Read all the column statistics data that has been generated for the given symbol.
 
@@ -1354,7 +1354,7 @@ class NativeVersionStore:
         read_result = ReadResult(*self.version_store.read_column_stats_version(symbol, version_query))
         return self._arrow_output_frame_to_table(read_result.frame_data)
 
-    def get_column_stats_info(
+    def get_column_stats_info_experimental(
         self, symbol: str, as_of: Optional[VersionQueryInput] = None, **kwargs
     ) -> Dict[str, Set[str]]:
         """
@@ -1371,7 +1371,6 @@ class NativeVersionStore:
         -------
         `Dict[str, Set[str]]`
             A dict from column names to sets of column stats that have been generated for that column.
-            In the same format as the `column_stats` argument provided to `create_column_stats_experimental` and `drop_column_stats`.
         """
         version_query = self._get_version_query(as_of, **kwargs)
         return self.version_store.get_column_stats_info_version(symbol, version_query).to_map()

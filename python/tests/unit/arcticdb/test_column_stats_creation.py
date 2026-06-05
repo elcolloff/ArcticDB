@@ -75,20 +75,20 @@ def test_column_stats_basic_flow(version_store_factory, lib_name, encoding_versi
     column_stats_dict = {"col_1": {"MINMAX"}}
 
     # These should just log warnings if no column stats exist
-    lib.drop_column_stats(sym)
-    lib.drop_column_stats(sym, column_stats_dict)
+    lib.drop_column_stats_experimental(sym)
+    lib.drop_column_stats_experimental(sym, column_stats_dict)
 
-    lib.create_column_stats(sym, column_stats_dict)
-    assert lib.get_column_stats_info(sym) == column_stats_dict
+    lib.create_column_stats_experimental(sym, column_stats_dict)
+    assert lib.get_column_stats_info_experimental(sym) == column_stats_dict
 
-    column_stats = lib.read_column_stats(sym)
+    column_stats = lib.read_column_stats_experimental(sym)
     assert_stats_equal(column_stats, expected_column_stats)
 
-    lib.drop_column_stats(sym)
+    lib.drop_column_stats_experimental(sym)
     with pytest.raises(StorageException):
-        lib.get_column_stats_info(sym)
+        lib.get_column_stats_info_experimental(sym)
     with pytest.raises(StorageException):
-        lib.read_column_stats(sym)
+        lib.read_column_stats_experimental(sym)
 
 
 def test_column_stats_infinity(version_store_factory, lib_name, encoding_version, any_output_format):
@@ -113,9 +113,9 @@ def test_column_stats_infinity(version_store_factory, lib_name, encoding_version
     )
     column_stats_dict = {"col_1": {"MINMAX"}}
 
-    lib.create_column_stats(sym, column_stats_dict)
+    lib.create_column_stats_experimental(sym, column_stats_dict)
 
-    column_stats = lib.read_column_stats(sym)
+    column_stats = lib.read_column_stats_experimental(sym)
     assert_stats_equal(column_stats, expected_column_stats)
 
 
@@ -143,9 +143,9 @@ def test_column_stats_nan_values(lmdb_version_store, any_output_format):
     )
     column_stats_dict = {"col_1": {"MINMAX"}}
 
-    lib.create_column_stats(sym, column_stats_dict)
+    lib.create_column_stats_experimental(sym, column_stats_dict)
 
-    column_stats = lib.read_column_stats(sym)
+    column_stats = lib.read_column_stats_experimental(sym)
     assert_stats_equal(column_stats, expected_column_stats)
 
 
@@ -162,9 +162,9 @@ def test_column_stats_only_nan_values(lmdb_version_store, any_output_format):
     )
     column_stats_dict = {"col_1": {"MINMAX"}}
 
-    lib.create_column_stats(sym, column_stats_dict)
+    lib.create_column_stats_experimental(sym, column_stats_dict)
 
-    column_stats = lib.read_column_stats(sym)
+    column_stats = lib.read_column_stats_experimental(sym)
     assert_stats_equal(column_stats, expected_column_stats)
 
 
@@ -233,9 +233,9 @@ def test_column_stats_nat_values(lmdb_version_store, any_output_format):
     )
     column_stats_dict = {"col_1": {"MINMAX"}}
 
-    lib.create_column_stats(sym, column_stats_dict)
+    lib.create_column_stats_experimental(sym, column_stats_dict)
 
-    column_stats = lib.read_column_stats(sym)
+    column_stats = lib.read_column_stats_experimental(sym)
     assert_stats_equal(column_stats, expected_column_stats)
 
     nat_sentinel = np.iinfo(np.int64).min
@@ -260,9 +260,9 @@ def test_column_stats_only_nat_values(lmdb_version_store, any_output_format):
     )
     column_stats_dict = {"col_1": {"MINMAX"}}
 
-    lib.create_column_stats(sym, column_stats_dict)
+    lib.create_column_stats_experimental(sym, column_stats_dict)
 
-    column_stats = lib.read_column_stats(sym)
+    column_stats = lib.read_column_stats_experimental(sym)
     assert_stats_equal(column_stats, expected_column_stats)
 
     nat_sentinel = np.iinfo(np.int64).min
@@ -288,21 +288,21 @@ def test_column_stats_as_of(version_store_factory, lib_name, encoding_version, a
         ["start_index", "end_index", "v1_MIN(col_1)", "v1_MAX(col_1)"]
     )
     column_stats_dict = {"col_1": {"MINMAX"}}
-    lib.create_column_stats(sym, column_stats_dict, as_of=0)
-    assert lib.get_column_stats_info(sym, as_of=0) == column_stats_dict
+    lib.create_column_stats_experimental(sym, column_stats_dict, as_of=0)
+    assert lib.get_column_stats_info_experimental(sym, as_of=0) == column_stats_dict
     with pytest.raises(StorageException):
-        lib.get_column_stats_info(sym)
+        lib.get_column_stats_info_experimental(sym)
 
-    column_stats = lib.read_column_stats(sym, as_of=0)
+    column_stats = lib.read_column_stats_experimental(sym, as_of=0)
     assert_stats_equal(column_stats, expected_column_stats)
     with pytest.raises(StorageException):
-        lib.read_column_stats(sym)
+        lib.read_column_stats_experimental(sym)
 
-    lib.drop_column_stats(sym, as_of=0)
+    lib.drop_column_stats_experimental(sym, as_of=0)
     with pytest.raises(StorageException):
-        lib.get_column_stats_info(sym, as_of=0)
+        lib.get_column_stats_info_experimental(sym, as_of=0)
     with pytest.raises(StorageException):
-        lib.read_column_stats(sym, as_of=0)
+        lib.read_column_stats_experimental(sym, as_of=0)
 
 
 def test_column_stats_as_of_version_doesnt_exist(version_store_factory, lib_name, encoding_version, any_output_format):
@@ -321,11 +321,11 @@ def test_column_stats_as_of_version_doesnt_exist(version_store_factory, lib_name
 
     column_stats_dict = {"col_1": {"MINMAX"}}
     with pytest.raises(NoSuchVersionException):
-        lib.create_column_stats(sym, column_stats_dict, as_of=0)
+        lib.create_column_stats_experimental(sym, column_stats_dict, as_of=0)
     with pytest.raises(NoSuchVersionException):
-        lib.get_column_stats_info(sym, as_of=0)
+        lib.get_column_stats_info_experimental(sym, as_of=0)
     with pytest.raises(NoSuchVersionException):
-        lib.read_column_stats(sym, as_of=0)
+        lib.read_column_stats_experimental(sym, as_of=0)
 
 
 # TODO: When more than one column stat type is implemented, change this to add multiple indexes across multiple columns
@@ -344,17 +344,17 @@ def test_column_stats_multiple_indexes_different_columns(
     expected_column_stats = generate_symbol(lib, sym)
 
     column_stats_dict = {"col_1": {"MINMAX"}, "col_2": {"MINMAX"}}
-    lib.create_column_stats(sym, column_stats_dict)
-    assert lib.get_column_stats_info(sym) == column_stats_dict
+    lib.create_column_stats_experimental(sym, column_stats_dict)
+    assert lib.get_column_stats_info_experimental(sym) == column_stats_dict
 
-    column_stats = lib.read_column_stats(sym)
+    column_stats = lib.read_column_stats_experimental(sym)
     assert_stats_equal(column_stats, expected_column_stats)
 
-    lib.drop_column_stats(sym, {"col_2": {"MINMAX"}})
-    assert lib.get_column_stats_info(sym) == {"col_1": {"MINMAX"}}
+    lib.drop_column_stats_experimental(sym, {"col_2": {"MINMAX"}})
+    assert lib.get_column_stats_info_experimental(sym) == {"col_1": {"MINMAX"}}
 
     expected_column_stats = expected_column_stats.select(["start_index", "end_index", "v1_MIN(col_1)", "v1_MAX(col_1)"])
-    column_stats = lib.read_column_stats(sym)
+    column_stats = lib.read_column_stats_experimental(sym)
     assert_stats_equal(column_stats, expected_column_stats)
 
 
@@ -371,17 +371,17 @@ def test_column_stats_empty_dict(version_store_factory, lib_name, encoding_versi
     expected_column_stats = generate_symbol(lib, sym)
 
     column_stats_empty_dict = dict()
-    lib.create_column_stats(sym, column_stats_empty_dict)
+    lib.create_column_stats_experimental(sym, column_stats_empty_dict)
     with pytest.raises(StorageException):
-        lib.get_column_stats_info(sym)
+        lib.get_column_stats_info_experimental(sym)
     with pytest.raises(StorageException):
-        lib.read_column_stats(sym)
+        lib.read_column_stats_experimental(sym)
 
     column_stats_dict = {"col_1": {"MINMAX"}, "col_2": {"MINMAX"}}
-    lib.create_column_stats(sym, column_stats_dict)
-    lib.drop_column_stats(sym, column_stats_empty_dict)
-    assert lib.get_column_stats_info(sym) == column_stats_dict
-    assert_stats_equal(lib.read_column_stats(sym), expected_column_stats)
+    lib.create_column_stats_experimental(sym, column_stats_dict)
+    lib.drop_column_stats_experimental(sym, column_stats_empty_dict)
+    assert lib.get_column_stats_info_experimental(sym) == column_stats_dict
+    assert_stats_equal(lib.read_column_stats_experimental(sym), expected_column_stats)
 
 
 def test_column_stats_empty_set(version_store_factory, lib_name, encoding_version, any_output_format):
@@ -397,17 +397,17 @@ def test_column_stats_empty_set(version_store_factory, lib_name, encoding_versio
     expected_column_stats = generate_symbol(lib, sym)
 
     column_stats_empty_set = {"col_1": set()}
-    lib.create_column_stats(sym, column_stats_empty_set)
+    lib.create_column_stats_experimental(sym, column_stats_empty_set)
     with pytest.raises(StorageException):
-        lib.get_column_stats_info(sym)
+        lib.get_column_stats_info_experimental(sym)
     with pytest.raises(StorageException):
-        lib.read_column_stats(sym)
+        lib.read_column_stats_experimental(sym)
 
     column_stats_dict = {"col_1": {"MINMAX"}, "col_2": {"MINMAX"}}
-    lib.create_column_stats(sym, column_stats_dict)
-    lib.drop_column_stats(sym, column_stats_empty_set)
-    assert lib.get_column_stats_info(sym) == column_stats_dict
-    assert_stats_equal(lib.read_column_stats(sym), expected_column_stats)
+    lib.create_column_stats_experimental(sym, column_stats_dict)
+    lib.drop_column_stats_experimental(sym, column_stats_empty_set)
+    assert lib.get_column_stats_info_experimental(sym) == column_stats_dict
+    assert_stats_equal(lib.read_column_stats_experimental(sym), expected_column_stats)
 
 
 def test_column_stats_non_existent_column(version_store_factory, lib_name, encoding_version, any_output_format):
@@ -424,20 +424,20 @@ def test_column_stats_non_existent_column(version_store_factory, lib_name, encod
 
     column_stats_non_existent_column = {"non_existent_column": {"MINMAX"}}
     with pytest.raises(UserInputException) as exception_info:
-        lib.create_column_stats(sym, column_stats_non_existent_column)
+        lib.create_column_stats_experimental(sym, column_stats_non_existent_column)
     assert "non_existent_column" in str(exception_info.value)
 
     column_stats_non_existent_column_and_existent = {"non_existent_column": {"MINMAX"}, "col_1": {"MINMAX"}}
     with pytest.raises(UserInputException) as exception_info:
-        lib.create_column_stats(sym, column_stats_non_existent_column_and_existent)
+        lib.create_column_stats_experimental(sym, column_stats_non_existent_column_and_existent)
     assert "non_existent_column" in str(exception_info.value)
     assert "E_INVALID_USER_ARGUMENT" in str(exception_info.value)
 
     column_stats_dict = {"col_1": {"MINMAX"}, "col_2": {"MINMAX"}}
-    lib.create_column_stats(sym, column_stats_dict)
-    lib.drop_column_stats(sym, column_stats_non_existent_column)
-    assert lib.get_column_stats_info(sym) == column_stats_dict
-    assert_stats_equal(lib.read_column_stats(sym), expected_column_stats)
+    lib.create_column_stats_experimental(sym, column_stats_dict)
+    lib.drop_column_stats_experimental(sym, column_stats_non_existent_column)
+    assert lib.get_column_stats_info_experimental(sym) == column_stats_dict
+    assert_stats_equal(lib.read_column_stats_experimental(sym), expected_column_stats)
 
 
 def test_column_stats_non_existent_stat_type(version_store_factory, lib_name, encoding_version, any_output_format):
@@ -454,14 +454,14 @@ def test_column_stats_non_existent_stat_type(version_store_factory, lib_name, en
 
     column_stats_non_existent_index_type = {"col_1": {"NON_EXISTENT_INDEX_TYPE"}}
     with pytest.raises(UserInputException):
-        lib.create_column_stats(sym, column_stats_non_existent_index_type)
+        lib.create_column_stats_experimental(sym, column_stats_non_existent_index_type)
 
     column_stats_dict = {"col_1": {"MINMAX"}, "col_2": {"MINMAX"}}
-    lib.create_column_stats(sym, column_stats_dict)
+    lib.create_column_stats_experimental(sym, column_stats_dict)
     with pytest.raises(UserInputException):
-        lib.drop_column_stats(sym, column_stats_non_existent_index_type)
-    assert lib.get_column_stats_info(sym) == column_stats_dict
-    assert_stats_equal(lib.read_column_stats(sym), expected_column_stats)
+        lib.drop_column_stats_experimental(sym, column_stats_non_existent_index_type)
+    assert lib.get_column_stats_info_experimental(sym) == column_stats_dict
+    assert_stats_equal(lib.read_column_stats_experimental(sym), expected_column_stats)
 
 
 def test_column_stats_pickled_symbol(version_store_factory, lib_name, encoding_version, any_output_format):
@@ -479,7 +479,7 @@ def test_column_stats_pickled_symbol(version_store_factory, lib_name, encoding_v
 
     column_stats_dict = {"col_1": {"MINMAX"}}
     with pytest.raises(SchemaException):
-        lib.create_column_stats(sym, column_stats_dict)
+        lib.create_column_stats_experimental(sym, column_stats_dict)
 
 
 def test_column_stats_multiple_creates(version_store_factory, lib_name, encoding_version, any_output_format):
@@ -495,28 +495,28 @@ def test_column_stats_multiple_creates(version_store_factory, lib_name, encoding
     base_expected_column_stats = generate_symbol(lib, sym)
 
     column_stats_dict_1 = {"col_1": {"MINMAX"}}
-    lib.create_column_stats(sym, column_stats_dict_1)
-    assert lib.get_column_stats_info(sym) == column_stats_dict_1
+    lib.create_column_stats_experimental(sym, column_stats_dict_1)
+    assert lib.get_column_stats_info_experimental(sym) == column_stats_dict_1
 
     expected_column_stats = base_expected_column_stats.select(
         ["start_index", "end_index", "v1_MIN(col_1)", "v1_MAX(col_1)"]
     )
-    column_stats = lib.read_column_stats(sym)
+    column_stats = lib.read_column_stats_experimental(sym)
     assert_stats_equal(column_stats, expected_column_stats)
 
     # Re-adding the same index should be idempotent
-    lib.create_column_stats(sym, column_stats_dict_1)
-    assert lib.get_column_stats_info(sym) == column_stats_dict_1
-    column_stats = lib.read_column_stats(sym)
+    lib.create_column_stats_experimental(sym, column_stats_dict_1)
+    assert lib.get_column_stats_info_experimental(sym) == column_stats_dict_1
+    column_stats = lib.read_column_stats_experimental(sym)
     assert_stats_equal(column_stats, expected_column_stats)
 
     column_stats_dict_2 = {"col_2": {"MINMAX"}}
-    lib.create_column_stats(sym, column_stats_dict_2)
+    lib.create_column_stats_experimental(sym, column_stats_dict_2)
     column_stats_dict_merged = column_stats_dict_1.copy()
     column_stats_dict_merged.update(column_stats_dict_2)
-    assert lib.get_column_stats_info(sym) == column_stats_dict_merged
+    assert lib.get_column_stats_info_experimental(sym) == column_stats_dict_merged
 
-    column_stats = lib.read_column_stats(sym)
+    column_stats = lib.read_column_stats_experimental(sym)
     assert_stats_equal(column_stats, base_expected_column_stats)
 
 
@@ -534,7 +534,7 @@ def test_column_stats_string_column_minmax(version_store_factory, lib_name, enco
 
     column_stats_dict = {"col_0": {"MINMAX"}}
     with pytest.raises(SchemaException):
-        lib.create_column_stats(sym, column_stats_dict)
+        lib.create_column_stats_experimental(sym, column_stats_dict)
 
 
 def test_column_stats_duplicated_primary_index(version_store_factory, lib_name, encoding_version, any_output_format):
@@ -556,10 +556,10 @@ def test_column_stats_duplicated_primary_index(version_store_factory, lib_name, 
     )
 
     column_stats_dict = {"col_1": {"MINMAX"}}
-    lib.create_column_stats(sym, column_stats_dict)
-    assert lib.get_column_stats_info(sym) == column_stats_dict
+    lib.create_column_stats_experimental(sym, column_stats_dict)
+    assert lib.get_column_stats_info_experimental(sym) == column_stats_dict
 
-    column_stats = lib.read_column_stats(sym)
+    column_stats = lib.read_column_stats_experimental(sym)
     assert_stats_equal(column_stats, expected_column_stats)
 
 
@@ -613,10 +613,10 @@ def test_column_stats_dynamic_schema_missing_data(version_store_factory, lib_nam
         pl.Series("v1_MAX(col_5)", [None, None, None, None, None, df5["col_5"].max()], dtype=pl.Int64),
     )
     column_stats_dict = {"col_1": {"MINMAX"}, "col_2": {"MINMAX"}, "col_5": {"MINMAX"}}
-    lib.create_column_stats(sym, column_stats_dict)
-    assert lib.get_column_stats_info(sym) == column_stats_dict
+    lib.create_column_stats_experimental(sym, column_stats_dict)
+    assert lib.get_column_stats_info_experimental(sym) == column_stats_dict
 
-    column_stats = lib.read_column_stats(sym)
+    column_stats = lib.read_column_stats_experimental(sym)
     assert_stats_equal(column_stats, expected_column_stats)
 
 
@@ -692,10 +692,10 @@ def test_column_stats_dynamic_schema_types_changing(
         "int_to_float": {"MINMAX"},
         "float_to_int": {"MINMAX"},
     }
-    lib.create_column_stats(sym, column_stats_dict)
-    assert lib.get_column_stats_info(sym) == column_stats_dict
+    lib.create_column_stats_experimental(sym, column_stats_dict)
+    assert lib.get_column_stats_info_experimental(sym) == column_stats_dict
 
-    column_stats = lib.read_column_stats(sym)
+    column_stats = lib.read_column_stats_experimental(sym)
     assert_stats_equal(column_stats, expected_column_stats)
 
     schema = pl.from_arrow(column_stats).schema
@@ -730,7 +730,7 @@ def test_column_stats_object_deleted_with_index_key(lmdb_version_store, any_outp
 
     def create_stats():
         nonlocal expected_count
-        lib.create_column_stats(sym, column_stats_dict)
+        lib.create_column_stats_experimental(sym, column_stats_dict)
         expected_count += 1
 
     def assert_column_stats_key_count():
@@ -921,7 +921,7 @@ def test_column_stats_header_metadata(version_store_factory, lib_name, encoding_
     generate_symbol(lib, sym)
 
     # Create stats for col_1
-    lib.create_column_stats(sym, {"col_1": {"MINMAX"}})
+    lib.create_column_stats_experimental(sym, {"col_1": {"MINMAX"}})
     header = read_column_stats_header(lib, sym)
 
     assert header.version == 1
@@ -945,7 +945,7 @@ def test_column_stats_header_metadata(version_store_factory, lib_name, encoding_
             assert field_name == "v1_MAX(col_1)"
 
     # Create stats for col_2 over existing col_1 stats
-    lib.create_column_stats(sym, {"col_2": {"MINMAX"}})
+    lib.create_column_stats_experimental(sym, {"col_2": {"MINMAX"}})
     header = read_column_stats_header(lib, sym)
 
     assert header.version == 1
@@ -960,7 +960,7 @@ def test_column_stats_header_metadata(version_store_factory, lib_name, encoding_
     assert len(set(offsets)) == 4
 
     # Drop col_1 stats
-    lib.drop_column_stats(sym, {"col_1": {"MINMAX"}})
+    lib.drop_column_stats_experimental(sym, {"col_1": {"MINMAX"}})
     header = read_column_stats_header(lib, sym)
 
     assert header.version == 1
@@ -1005,17 +1005,17 @@ def test_column_stats_duplicated_column_names(version_store_factory, lib_name, e
 
     column_stats_dict = {"col_1": {"MINMAX"}}
     with pytest.raises(UserInputException):
-        lib.create_column_stats(sym, column_stats_dict)
+        lib.create_column_stats_experimental(sym, column_stats_dict)
     lt = lib.library_tool()
     stats_keys = lt.find_keys_for_symbol(KeyType.COLUMN_STATS, sym)
     assert not stats_keys
 
     column_stats_dict = {"col_0": {"MINMAX"}}
-    lib.create_column_stats(sym, column_stats_dict)
+    lib.create_column_stats_experimental(sym, column_stats_dict)
     stats_keys = lt.find_keys_for_symbol(KeyType.COLUMN_STATS, sym)
     assert len(stats_keys) == 1
 
-    res = lib.read_column_stats(sym)
+    res = lib.read_column_stats_experimental(sym)
     expected = pl.DataFrame(
         {
             "start_index": pl.Series([pd.Timestamp("2000-01-01").value], dtype=pl.Int64).cast(pl.Datetime("ns")),
@@ -1051,7 +1051,7 @@ def test_column_stats_col_called_index(
     lib.write(sym, df)
 
     column_stats_dict = {col_name: {"MINMAX"}}
-    lib.create_column_stats(sym, column_stats_dict)
+    lib.create_column_stats_experimental(sym, column_stats_dict)
     stats_keys = lib.library_tool().find_keys_for_symbol(KeyType.COLUMN_STATS, sym)
     assert len(stats_keys) == 1
 
@@ -1059,7 +1059,7 @@ def test_column_stats_col_called_index(
         expected_title = "__col_index__0"
     else:
         expected_title = index_name
-    res = lib.read_column_stats(sym)
+    res = lib.read_column_stats_experimental(sym)
     expected = pl.DataFrame(
         {
             "start_index": pl.Series([pd.Timestamp("2000-01-01").value], dtype=pl.Int64).cast(pl.Datetime("ns")),
@@ -1099,13 +1099,13 @@ def test_column_stats_none_key(version_store_factory, lib_name, encoding_version
 
     column_stats_dict = {None: {"MINMAX"}}
     with pytest.raises(UserInputException):
-        lib.create_column_stats(sym, column_stats_dict)
+        lib.create_column_stats_experimental(sym, column_stats_dict)
     stats_keys = lib.library_tool().find_keys_for_symbol(KeyType.COLUMN_STATS, sym)
     assert len(stats_keys) == 0
 
-    lib.create_column_stats(sym, {"col_one": {"MINMAX"}})
+    lib.create_column_stats_experimental(sym, {"col_one": {"MINMAX"}})
     with pytest.raises(UserInputException):
-        lib.drop_column_stats(sym, column_stats_dict)
+        lib.drop_column_stats_experimental(sym, column_stats_dict)
 
 
 @pytest.mark.parametrize(
@@ -1162,11 +1162,11 @@ def test_column_stats_multiindex(
 
     # Create column stats on the inner index level and a data column
     column_stats_dict = {level_name: {"MINMAX"}, "val": {"MINMAX"}}
-    lib.create_column_stats(sym, column_stats_dict)
-    assert lib.get_column_stats_info(sym) == {stored_col_name: {"MINMAX"}, "val": {"MINMAX"}}
+    lib.create_column_stats_experimental(sym, column_stats_dict)
+    assert lib.get_column_stats_info_experimental(sym) == {stored_col_name: {"MINMAX"}, "val": {"MINMAX"}}
 
     # Read and verify the stats
-    stats = lib.read_column_stats(sym)
+    stats = lib.read_column_stats_experimental(sym)
     expected = index_columns_to_pl(lib, sym).with_columns(
         pl.Series(f"v1_MIN({stored_col_name})", [10, 30]),
         pl.Series(f"v1_MAX({stored_col_name})", [20, 40]),
@@ -1190,19 +1190,19 @@ def test_column_stats_multiindex(
     pd.testing.assert_frame_equal(result, expected_filtered)
 
     # Drop stats for one column, verify the other remains
-    lib.drop_column_stats(sym, {level_name: {"MINMAX"}})
-    assert lib.get_column_stats_info(sym) == {"val": {"MINMAX"}}
+    lib.drop_column_stats_experimental(sym, {level_name: {"MINMAX"}})
+    assert lib.get_column_stats_info_experimental(sym) == {"val": {"MINMAX"}}
 
-    stats = lib.read_column_stats(sym)
+    stats = lib.read_column_stats_experimental(sym)
     expected = expected.drop([f"v1_MIN({stored_col_name})", f"v1_MAX({stored_col_name})"])
     assert_stats_equal(stats, expected)
 
     # Drop all remaining stats
-    lib.drop_column_stats(sym)
+    lib.drop_column_stats_experimental(sym)
     with pytest.raises(StorageException):
-        lib.get_column_stats_info(sym)
+        lib.get_column_stats_info_experimental(sym)
     with pytest.raises(StorageException):
-        lib.read_column_stats(sym)
+        lib.read_column_stats_experimental(sym)
 
 
 def test_column_stats_multiindex_same_name_as_data_col(
@@ -1235,7 +1235,7 @@ def test_column_stats_multiindex_same_name_as_data_col(
 
     column_stats_dict = {"level": {"MINMAX"}}
     with pytest.raises(UserInputException):
-        lib.create_column_stats(sym, column_stats_dict)
+        lib.create_column_stats_experimental(sym, column_stats_dict)
 
 
 def test_column_stats_multiindex_outer_level_not_possible(
@@ -1262,7 +1262,7 @@ def test_column_stats_multiindex_outer_level_not_possible(
 
     # Can't create stats over the real index
     with pytest.raises(UserInputException):
-        lib.create_column_stats(sym, {"datetime": {"MINMAX"}})
+        lib.create_column_stats_experimental(sym, {"datetime": {"MINMAX"}})
     stats_keys = lib.library_tool().find_keys_for_symbol(KeyType.COLUMN_STATS, sym)
     assert not stats_keys
 
@@ -1287,15 +1287,15 @@ def test_column_stats_create_tiny_thread_pool(
     expected_column_stats = generate_symbol(lib, sym)
 
     column_stats_dict_1 = {"col_1": {"MINMAX"}}
-    lib.create_column_stats(sym, column_stats_dict_1)
-    assert lib.get_column_stats_info(sym) == column_stats_dict_1
+    lib.create_column_stats_experimental(sym, column_stats_dict_1)
+    assert lib.get_column_stats_info_experimental(sym) == column_stats_dict_1
 
     column_stats_dict_2 = {"col_2": {"MINMAX"}}
-    lib.create_column_stats(sym, column_stats_dict_2)
+    lib.create_column_stats_experimental(sym, column_stats_dict_2)
     column_stats_dict_merged = {**column_stats_dict_1, **column_stats_dict_2}
-    assert lib.get_column_stats_info(sym) == column_stats_dict_merged
+    assert lib.get_column_stats_info_experimental(sym) == column_stats_dict_merged
 
-    column_stats = lib.read_column_stats(sym)
+    column_stats = lib.read_column_stats_experimental(sym)
     assert_stats_equal(column_stats, expected_column_stats)
 
 
@@ -1315,11 +1315,11 @@ def test_column_stats_drop_tiny_thread_pool(
     sym = "test_column_stats_drop_tiny_thread_pool"
     generate_symbol(lib, sym)
 
-    lib.create_column_stats(sym, {"col_1": {"MINMAX"}, "col_2": {"MINMAX"}})
+    lib.create_column_stats_experimental(sym, {"col_1": {"MINMAX"}, "col_2": {"MINMAX"}})
 
-    lib.drop_column_stats(sym, {"col_1": {"MINMAX"}})
-    assert lib.get_column_stats_info(sym) == {"col_2": {"MINMAX"}}
+    lib.drop_column_stats_experimental(sym, {"col_1": {"MINMAX"}})
+    assert lib.get_column_stats_info_experimental(sym) == {"col_2": {"MINMAX"}}
 
-    lib.drop_column_stats(sym)
+    lib.drop_column_stats_experimental(sym)
     with pytest.raises(StorageException):
-        lib.get_column_stats_info(sym)
+        lib.get_column_stats_info_experimental(sym)
