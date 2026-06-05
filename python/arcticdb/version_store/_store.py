@@ -1315,18 +1315,15 @@ class NativeVersionStore:
         return {str(col): {"MINMAX"} for col, dtype in zip(columns, dtypes) if dtype.value_type in numeric_value_types}
 
     def drop_column_stats(
-        self, symbol: str, column_stats: Optional[Dict[str, Set[str]]] = None, as_of: Optional[VersionQueryInput] = None
+        self, symbol: str, as_of: Optional[VersionQueryInput] = None
     ) -> None:
         """
-        Deletes the specified column statistics for the given symbol.
+        Deletes all column statistics for the given symbol.
 
         Parameters
         ----------
         symbol: `str`
             Symbol name.
-        column_stats: `Optional[Dict[str, Set[str]]], default=None`
-            The column stats to drop. If not provided, all column stats will be dropped.
-            See documentation of `create_column_stats_experimental` method for more details.
         as_of : `Optional[VersionQueryInput]`, default=None
             See documentation of `read` method for more details.
 
@@ -1334,9 +1331,8 @@ class NativeVersionStore:
         -------
         None
         """
-        column_stats = self._convert_to_native_column_stats(column_stats)
         version_query = self._get_version_query(as_of)
-        self.version_store.drop_column_stats_version(symbol, column_stats, version_query)
+        self.version_store.drop_column_stats_version(symbol, None, version_query)
 
     def read_column_stats(self, symbol: str, as_of: Optional[VersionQueryInput] = None, **kwargs) -> "pa.Table":
         """
