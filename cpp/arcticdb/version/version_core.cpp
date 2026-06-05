@@ -3369,6 +3369,7 @@ folly::Future<std::optional<VersionedItem>> compact_data_impl(
                                         return async::submit_io_task(WriteToSegmentTask(
                                                                              frame,
                                                                              slice.first,
+                                                                             NoSlicing(),
                                                                              get_partial_key_gen(frame, tsv),
                                                                              slice.second
                                                                      ))

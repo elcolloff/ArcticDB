@@ -30,12 +30,13 @@ using namespace arcticdb::stream;
 namespace ranges = std::ranges;
 
 WriteToSegmentTask::WriteToSegmentTask(
-        std::shared_ptr<InputFrame> frame, FrameSlice slice,
+        std::shared_ptr<InputFrame> frame, FrameSlice slice, const SlicingPolicy& slicing,
         folly::Function<PartialKey(const FrameSlice&)>&& partial_key_gen, size_t slice_num_for_column,
         bool sparsify_floats
 ) :
     frame_(std::move(frame)),
     slice_(std::move(slice)),
+    slicing_(slicing),
     partial_key_gen_(std::move(partial_key_gen)),
     slice_num_for_column_(slice_num_for_column),
     sparsify_floats_(sparsify_floats) {
@@ -354,7 +355,11 @@ SegmentInMemory WriteToSegmentTask::slice_tensors() const {
                 *slice_.desc()
         };
 
-        auto regular_slice_size = slice_.row_range.second - slice_.row_range.first;
+        auto regular_slice_size = util::variant_match(
+                slicing_,
+                [&](const NoSlicing&) { return slice_.row_range.second - slice_.row_range.first; },
+                [&](const auto& slicer) { return slicer.row_per_slice(); }
+        );
 
         // Offset is used for index value in row-count index
         auto offset_in_frame = slice_begin_pos(slice_, *frame_);
@@ -436,9 +441,9 @@ int64_t write_window_size() {
 }
 
 folly::SemiFuture<std::vector<folly::Try<SliceAndKey>>> write_slices(
-        const std::shared_ptr<InputFrame>& frame, std::vector<FrameSlice>&& slices, TypedStreamVersion&& key,
-        const std::shared_ptr<stream::StreamSink>& sink, const std::shared_ptr<DeDupMap>& de_dup_map,
-        bool sparsify_floats
+        const std::shared_ptr<InputFrame>& frame, std::vector<FrameSlice>&& slices, const SlicingPolicy& slicing,
+        TypedStreamVersion&& key, const std::shared_ptr<stream::StreamSink>& sink,
+        const std::shared_ptr<DeDupMap>& de_dup_map, bool sparsify_floats
 ) {
     ARCTICDB_SAMPLE(WriteSlices, 0)
 
@@ -447,10 +452,11 @@ folly::SemiFuture<std::vector<folly::Try<SliceAndKey>>> write_slices(
     int64_t write_window = write_window_size();
     auto window = folly::window(
             std::move(slice_and_rowcount),
-            [de_dup_map, frame, key = std::move(key), sink, sparsify_floats](auto&& slice) {
+            [de_dup_map, frame, slicing, key = std::move(key), sink, sparsify_floats](auto&& slice) {
                 return async::submit_cpu_task(WriteToSegmentTask(
                                                       frame,
                                                       slice.first,
+                                                      slicing,
                                                       get_partial_key_gen(frame, key),
                                                       slice.second,
                                                       sparsify_floats
@@ -476,7 +482,7 @@ folly::Future<std::vector<SliceAndKey>> slice_and_write(
 
     ARCTICDB_SUBSAMPLE_DEFAULT(SliceAndWrite)
     TypedStreamVersion tsv{std::move(key.id), key.version_id, KeyType::TABLE_DATA};
-    return write_slices(frame, std::move(slices), std::move(tsv), sink, de_dup_map, sparsify_floats)
+    return write_slices(frame, std::move(slices), slicing, std::move(tsv), sink, de_dup_map, sparsify_floats)
             .via(&async::cpu_executor())
             .thenValue([sink](std::vector<folly::Try<SliceAndKey>>&& ks) {
                 return rollback_slices_on_quota_exceeded(std::move(ks), sink);

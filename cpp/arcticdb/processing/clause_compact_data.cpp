@@ -232,6 +232,7 @@ std::vector<EntityId> CompactDataClause::process(std::vector<EntityId>&& entity_
         WriteToSegmentTask write_to_segment_task{
                 frame_,
                 frame_slice,
+                NoSlicing(),
                 [](const FrameSlice&) { return PartialKey{}; },
                 0,
         };
