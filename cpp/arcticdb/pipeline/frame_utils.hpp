@@ -321,8 +321,7 @@ std::optional<convert::StringEncodingError> set_array_type(
 template<typename Aggregator>
 std::optional<convert::StringEncodingError> aggregator_set_data(
         const TypeDescriptor& type_desc, const entity::NativeTensor& tensor, Aggregator& agg, size_t col,
-        size_t rows_to_write, size_t row, ARCTICDB_UNUSED size_t slice_num, ARCTICDB_UNUSED size_t regular_slice_size,
-        bool sparsify_floats
+        size_t rows_to_write, size_t row, bool sparsify_floats
 ) {
     return type_desc.visit_tag([&](auto tag) {
         using TagType = std::decay_t<decltype(tag)>;

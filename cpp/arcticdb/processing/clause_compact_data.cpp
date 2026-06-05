@@ -229,13 +229,7 @@ std::vector<EntityId> CompactDataClause::process(std::vector<EntityId>&& entity_
                 };
             }
         }();
-        WriteToSegmentTask write_to_segment_task{
-                frame_,
-                frame_slice,
-                NoSlicing(),
-                [](const FrameSlice&) { return PartialKey{}; },
-                0,
-        };
+        WriteToSegmentTask write_to_segment_task{frame_, frame_slice, [](const FrameSlice&) { return PartialKey{}; }};
         auto segment_from_frame = std::get<SegmentInMemory>(write_to_segment_task());
         segments.emplace_back(std::move(segment_from_frame));
     }

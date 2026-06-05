@@ -3366,13 +3366,11 @@ folly::Future<std::optional<VersionedItem>> compact_data_impl(
                             auto window = folly::window(
                                     std::move(slice_and_rowcount),
                                     [de_dup_map, frame, tsv, store](auto&& slice) {
-                                        return async::submit_io_task(WriteToSegmentTask(
-                                                                             frame,
-                                                                             slice.first,
-                                                                             NoSlicing(),
-                                                                             get_partial_key_gen(frame, tsv),
-                                                                             slice.second
-                                                                     ))
+                                        return async::submit_io_task(
+                                                       WriteToSegmentTask(
+                                                               frame, slice.first, get_partial_key_gen(frame, tsv)
+                                                       )
+                                        )
                                                 .thenValueInline([store, de_dup_map](auto&& ks) {
                                                     // TODO: Should this be sync?
                                                     return store->async_write(
