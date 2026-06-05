@@ -1874,7 +1874,7 @@ VersionedItem LocalVersionedEngine::append_internal(
                                           update_info,
                                           get_write_options(),
                                           get_write_options().segment_row_size,
-                                          frame,
+                                          frame->empty() ? std::shared_ptr<InputFrame>() : frame,
                                           validate_index,
                                           cfg().write_options().empty_types()
             )
