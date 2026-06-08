@@ -1296,9 +1296,8 @@ class NativeVersionStore:
 
         column_stats = self._convert_to_native_column_stats(column_stats)
         version_query = self._get_version_query(as_of)
-        read_query = _PythonVersionStoreReadQuery()
 
-        self.version_store.create_column_stats_version(symbol, column_stats, version_query, read_query)
+        self.version_store.create_column_stats_version(symbol, column_stats, version_query)
 
     def _get_eligible_column_stats_spec(
         self, symbol: str, as_of: Optional[VersionQueryInput]
@@ -1308,11 +1307,17 @@ class NativeVersionStore:
             TypeDescriptor.ValueType.UINT,
             TypeDescriptor.ValueType.INT,
             TypeDescriptor.ValueType.FLOAT,
+            TypeDescriptor.ValueType.BOOL,
             TypeDescriptor.ValueType.NANOSECONDS_UTC,
         }
         columns = info["col_names"]["columns"]
         dtypes = info["dtype"]
-        return {str(col): {"MINMAX"} for col, dtype in zip(columns, dtypes) if dtype.value_type in numeric_value_types}
+        index_cols = set(info["col_names"].get("index") or [])
+        return {
+            str(col): {"MINMAX"}
+            for col, dtype in zip(columns, dtypes)
+            if dtype.value_type in numeric_value_types and col not in index_cols
+        }
 
     def drop_column_stats_experimental(
         self, symbol: str, as_of: Optional[VersionQueryInput] = None
