@@ -132,10 +132,7 @@ jobs:
     name: Executes asv tests checks
     timeout-minutes: 120
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/man-group/arcticdb-dev:${{ inputs.dev_image_tag || 'latest' }}
-      volumes:
-        - /:/mnt
+    # container removed for verification
     env:
         # 0 - uses S3 Cache, 1 - uses GHA cache
         # this way the external PRs can use the GHA cache
